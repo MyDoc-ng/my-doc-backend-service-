@@ -7,7 +7,14 @@ class PrismaSingleton {
 
   public static getInstance(): PrismaClient {
     if (!PrismaSingleton.instance) {
-      PrismaSingleton.instance = new PrismaClient();
+      // @ts-ignore
+      PrismaSingleton.instance = new PrismaClient({
+        omit: {
+          user: {
+            password: true,
+          }
+        }
+      });
     }
     return PrismaSingleton.instance;
   }
