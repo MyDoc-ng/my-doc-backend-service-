@@ -1,9 +1,9 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { prisma } from "../prisma/prisma";
+import { BadRequestException } from "../exception/bad-request";
+import { ErrorCode } from "../exception/base";
 
-// Initialize Prisma Client
-const prisma = new PrismaClient();
 
 // Type for Register User Data
 interface RegisterUserData {
@@ -33,19 +33,21 @@ interface UserBioData {
   }; // Optional object to match the MedicalHistory model
 }
 
+export class AuthService {
+  // Register a new user
+  async registerUser(userData: RegisterUserData): Promise<any> {
+    const { name, email, password } = userData;
 
-// Register a new user
-export const registerUser = async (userData: RegisterUserData): Promise<any> => {
-  const { name, email, password } = userData;
-
-  try {
     // Check if the user already exists
     const existingUser = await prisma.user.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      throw new Error("User with this email already exists");
+      throw new BadRequestException(
+        "User with this email already exists",
+        ErrorCode.CONFLICT
+      );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -65,21 +67,29 @@ export const registerUser = async (userData: RegisterUserData): Promise<any> => 
       email: user.email,
       createdAt: user.createdAt,
     };
-  } catch (error: any) {
-    throw new Error(error.message);
   }
-};
-// Register a new user
-export const submitBiodata = async (userData: UserBioData): Promise<any> => {
 
-  const { userId, dateOfBirth, gender, phoneNumber, address, medicalHistory } = userData;
-  const { pastSurgeries = false, currentMeds = false, drugAllergies = false } = medicalHistory || {};
+  // Register a new user
+  async submitBiodata(userData: UserBioData): Promise<any> {
+    const {
+      userId,
+      dateOfBirth,
+      gender,
+      phoneNumber,
+      address,
+      medicalHistory,
+    } = userData;
 
-  try {
+    const {
+      pastSurgeries = false,
+      currentMeds = false,
+      drugAllergies = false,
+    } = medicalHistory || {};
+
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: {
-        dateOfBirth,
+        dateOfBirth: new Date(dateOfBirth),
         gender,
         phoneNumber,
         address,
@@ -87,9 +97,8 @@ export const submitBiodata = async (userData: UserBioData): Promise<any> => {
           create: { pastSurgeries, currentMeds, drugAllergies },
         },
       },
-      include : { medicalHistory: true }
+      include: { medicalHistory: true },
     });
-    
 
     return {
       id: updatedUser.id,
@@ -97,33 +106,29 @@ export const submitBiodata = async (userData: UserBioData): Promise<any> => {
       email: updatedUser.email,
       createdAt: updatedUser.createdAt,
     };
-    
-    res.status(200).json({ message: "Biodata submitted successfully", user: updatedUser });
-  } catch (error: any) {
-    res.status(400).json({ error: error.message || "Error updating biodata" });
   }
 
- 
-};
+  // Login user and generate a JWT token
+  async loginUser(email: string, password: string): Promise<LoginResponse> {
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new Error("Invalid credentials");
+    }
 
-// Login user and generate a JWT token
-export const loginUser = async (email: string, password: string): Promise<LoginResponse> => {
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    throw new Error('Invalid credentials');
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      throw new Error("Invalid credentials");
+    }
+
+    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, {
+      expiresIn: "1h",
+    });
+
+    return {
+      token,
+      name: user.name,
+      email: user.email,
+    };
   }
-
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-
-  if (!isPasswordValid) {
-    throw new Error('Invalid credentials');
-  }
-
-  const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, { expiresIn: '1h' });
-
-  return {
-    token,
-    name: user.name,
-    email: user.email,
-  };
-};
+}
