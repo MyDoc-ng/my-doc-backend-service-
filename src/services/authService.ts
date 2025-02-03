@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
+import { NotFoundException } from "../exception/not-found";
 
 // Type for Register User Data
 interface RegisterUserData {
@@ -72,7 +73,7 @@ export class AuthService {
     };
   }
 
-  // Register a new user
+
   async submitBiodata(userData: UserBioData): Promise<any> {
     const {
       userId,
@@ -113,15 +114,24 @@ export class AuthService {
 
   // Login user and generate a JWT token
   async loginUser(email: string, password: string): Promise<LoginResponse> {
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findFirst({
+      where: { email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        password: true,
+      },
+    });
+
     if (!user) {
-      throw new Error("Invalid credentials");
+      throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
     if (!isPasswordValid) {
-      throw new Error("Invalid credentials");
+      throw new BadRequestException("Incorrect password", ErrorCode.UNAUTHORIZED);
     }
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, {
@@ -136,7 +146,6 @@ export class AuthService {
   }
 
   async updateUserPhoto(data: UserPhotoData): Promise<any> {
-
     const { userId, photoPath } = data;
 
     const updatedUser = await prisma.user.update({

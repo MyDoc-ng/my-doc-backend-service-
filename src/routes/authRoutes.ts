@@ -9,14 +9,14 @@ const authController = new AuthController();
 
 // User registration route
 //@ts-ignore
-router.post('/register', validateData(userRegisterSchema), (req, res, next) => authController.register(req, res, next));
+router.post('/register', validateData(userRegisterSchema), authController.register);
 
 // User login route
-router.post('/login', validateData(userLoginSchema), (req, res, next) => authController.login(req, res, next));
+router.post('/login', validateData(userLoginSchema), authController.login);
 
-router.put('/submit-biodata', validateData(userBiodataSchema), (req, res, next) => authController.submitBiodata(req, res, next));
+router.put('/submit-biodata', validateData(userBiodataSchema), authController.submitBiodata);
 
-router.put("/upload-photo", upload.single("photo"), (req, res, next) => authController.uploadUserPhoto(req, res, next));
+router.put("/upload-photo", upload.single("photo"), authController.uploadUserPhoto);
 
 
 export default router;
