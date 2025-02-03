@@ -9,9 +9,9 @@ export class UserController {
   async getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const users = await userService.getUsers();
+      
       res.json(users);
     } catch (error: any) {
-        console.log(error);
         
         next(error)
     }

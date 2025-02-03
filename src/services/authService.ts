@@ -4,12 +4,15 @@ import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
 
-
 // Type for Register User Data
 interface RegisterUserData {
   name: string;
   email: string;
   password: string;
+}
+interface UserPhotoData {
+  userId: string;
+  photoPath: string;
 }
 
 // Type for Login Response
@@ -129,6 +132,23 @@ export class AuthService {
       token,
       name: user.name,
       email: user.email,
+    };
+  }
+
+  async updateUserPhoto(data: UserPhotoData): Promise<any> {
+
+    const { userId, photoPath } = data;
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { photo: photoPath },
+    });
+
+    return {
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      photo: updatedUser.photo,
     };
   }
 }
