@@ -14,8 +14,8 @@ app.use(cookieParser());
 const PORT: number = parseInt(process.env.PORT || "3000", 10);
 
 // Register routes
-app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/', userRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/', userRoutes);
 
 
 // Handle non-existing routes
