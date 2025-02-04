@@ -28,7 +28,7 @@ model User {
   id             String           @id @default(uuid())
   name           String
   email          String           @unique
-  password       String
+  password       String?
   dateOfBirth    DateTime?        @db.Date
   gender         Gender           @default(MALE)
   role           Roles            @default(USER)
@@ -38,6 +38,7 @@ model User {
   otp            String? // OTP for phone verification
   isVerified     Boolean?         @default(false)
   photo          String? // Photo URL
+  googleId       String?          @unique
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
