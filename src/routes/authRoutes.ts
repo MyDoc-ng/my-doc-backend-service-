@@ -18,5 +18,8 @@ router.put('/submit-biodata', validateData(userBiodataSchema), authController.su
 
 router.put("/upload-photo", upload.single("photo"), authController.uploadUserPhoto);
 
+router.post('/google', authController.googleAuth);
+
+router.post('/apple', authController.appleAuth);
 
 export default router;

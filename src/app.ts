@@ -3,6 +3,8 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes"; 
 import userRoutes from "./routes/userRoutes";
 import { errorMiddleware } from "./middleware/errorMiddleware";
+import { NotFoundException } from "./exception/not-found";
+import { ErrorCode } from "./exception/base";
 
 const app = express();
 
@@ -19,8 +21,8 @@ app.use('/api/', userRoutes);
 
 
 // Handle non-existing routes
-app.use((_req: Request, res: Response, _next: NextFunction) => {
-  res.status(404).send("Route not found");
+app.use((_req: Request, res: Response, next: NextFunction) => {
+  next(new NotFoundException(`Route ${_req.url} not found`, ErrorCode.NOTFOUND));
 });
 
 app.use(errorMiddleware);

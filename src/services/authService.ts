@@ -4,6 +4,9 @@ import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
 import { NotFoundException } from "../exception/not-found";
+import appleSigninAuth from 'apple-signin-auth';
+
+
 
 // Type for Register User Data
 interface RegisterUserData {
@@ -73,7 +76,6 @@ export class AuthService {
     };
   }
 
-
   async submitBiodata(userData: UserBioData): Promise<any> {
     const {
       userId,
@@ -128,10 +130,13 @@ export class AuthService {
       throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password!);
 
     if (!isPasswordValid) {
-      throw new BadRequestException("Incorrect password", ErrorCode.UNAUTHORIZED);
+      throw new BadRequestException(
+        "Incorrect password",
+        ErrorCode.UNAUTHORIZED
+      );
     }
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, {
@@ -160,4 +165,79 @@ export class AuthService {
       photo: updatedUser.photo,
     };
   }
+
+  async verifyGoogleToken(idToken: string): Promise<any> {
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID as string,
+    });
+
+    const payload = ticket.getPayload()!;
+
+    if (!payload) {
+      throw new BadRequestException("Invalid ID token", ErrorCode.BADREQUEST);
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    // Check or create user in database
+    let user = await prisma.user.findUnique({ where: { googleId } });
+
+    if (!user) {
+      user = await prisma.user.create({
+        data: {
+          googleId,
+          email: email || "",
+          name: name || "",
+          photo: picture || "",
+        },
+      });
+    }
+
+    // Generate a token (e.g., JWT or session token)
+    const token = generateAuthToken(user);
+
+    return { token, user };
+  }
+  
+  async verifyAppleToken(idToken: string): Promise<any> {
+    
+    const decodedToken = await appleSigninAuth.verifyIdToken(idToken,{
+      audience: process.env.APP_BUNDLE_ID as string,
+      ignoreExpiration: false,
+    });
+
+    if (!decodedToken) {
+      throw new BadRequestException('Invalid Apple ID token', ErrorCode.BADREQUEST);
+    }
+
+    const { sub: appleId, email } = decodedToken;
+
+    // Check if user exists in the database
+    let appleUser = await prisma.user.findUnique({
+      where: { appleId },
+    });
+
+   // If the user doesn't exist, create a new user
+   if (!appleUser) {
+    appleUser = await prisma.user.create({
+      data: {
+        appleId,
+        email: email || '', 
+        name: '',
+      },
+    });
+  }
+
+    // Generate a token (e.g., JWT or session token)
+    const token = generateAuthToken(appleUser);
+
+    return { token, appleUser };
+  }
+}
+
+function generateAuthToken(user: any) {
+  return jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, {
+    expiresIn: "1h",
+  });
 }
