@@ -24,6 +24,23 @@ enum Roles {
   DOCTOR
 }
 
+enum ConsultationType {
+  Messaging
+  AudioCall
+  VideoCall
+}
+
+enum AppointmentType {
+  Urgent
+  NonUrgent
+}
+
+enum AppointmentStatus {
+  Pending
+  InProgress
+  Completed
+}
+
 model User {
   id             String           @id @default(uuid())
   name           String
@@ -53,4 +70,33 @@ model MedicalHistory {
   pastSurgeries Boolean
   currentMeds   Boolean
   drugAllergies Boolean
+}
+
+model Doctor {
+  id           String        @id @default(uuid())
+  name         String
+  specialty    String
+  experience   Int // In years
+  ratings      Float // Decimal value for ratings
+  bio          String // About the doctor
+  profilePic   String // URL of the profile picture
+  appointments Appointment[] // Relation to appointments
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@map("doctors")
+}
+
+model Appointment {
+  id               Int               @id @default(autoincrement())
+  type             AppointmentType   @default(Urgent)
+  patientName      String
+  patientEmail     String
+  symptoms         String // List of symptoms as a JSON or text
+  consultationType ConsultationType  @default(Messaging)
+  doctorId         String
+  doctor           Doctor            @relation(fields: [doctorId], references: [id])
+  status           AppointmentStatus @default(Pending)
+  createdAt        DateTime          @default(now())
+  scheduledAt      DateTime          @default(now()) // Auto-filled for urgent; selectable for non-urgent
 }
