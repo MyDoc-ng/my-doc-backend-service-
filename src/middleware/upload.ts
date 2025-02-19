@@ -1,5 +1,7 @@
 import multer from "multer";
 import path from "path";
+import { BadRequestException } from "../exception/bad-request";
+import { ErrorCode } from "../exception/base";
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -17,7 +19,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   if (allowedExtensions.test(ext)) {
     cb(null, true);
   } else {
-    cb(new Error("Only .jpeg, .jpg, and .png files are allowed"));
+    cb(new BadRequestException("Only .jpeg, .jpg, and .png files are allowed", ErrorCode.BADREQUEST));
   }
 };
 

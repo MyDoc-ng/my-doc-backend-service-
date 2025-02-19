@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import { AuthController } from '../controller/authController';
 import { validateData } from '../middleware/validationMiddleware';
-import { userBiodataSchema, userLoginSchema, UserPhotoSchema, userRegisterSchema } from '../schema/userSchema';
+import { userBiodataSchema, userLoginSchema, userRegisterSchema } from '../schema/userSchema';
 import { upload } from '../middleware/upload';
 
 const router: Router = express.Router();

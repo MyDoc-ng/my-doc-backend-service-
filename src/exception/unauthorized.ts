@@ -5,3 +5,4 @@ export class UnauthorizedException extends BaseHttpException {
     super(message, errorCode, 401, error);
   }
 }
+

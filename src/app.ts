@@ -2,9 +2,11 @@ import express, { Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes"; 
 import userRoutes from "./routes/userRoutes";
+import appointments from "./routes/appointmentRoute";
 import { errorMiddleware } from "./middleware/errorMiddleware";
 import { NotFoundException } from "./exception/not-found";
 import { ErrorCode } from "./exception/base";
+import responseFormatter from "./middleware/responseFormatter";
 
 const app = express();
 
@@ -15,9 +17,19 @@ app.use(cookieParser());
 
 const PORT: number = parseInt(process.env.PORT || "3000", 10);
 
+app.use(responseFormatter);
+
+// app.use((req, res, next) => {
+//   if (req.path === "/api/exclude") {
+//     return next();
+//   }
+//   responseFormatter(req, res, next);
+// });
+
 // Register routes
 app.use('/api/auth', authRoutes);
 app.use('/api/', userRoutes);
+app.use('/api/', appointments);
 
 
 // Handle non-existing routes

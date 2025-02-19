@@ -88,15 +88,16 @@ model Doctor {
 }
 
 model Appointment {
-  id               Int               @id @default(autoincrement())
+  id               String               @id @default(uuid())
   type             AppointmentType   @default(Urgent)
   patientName      String
   patientEmail     String
-  symptoms         String // List of symptoms as a JSON or text
+  symptoms         String[] // List of symptoms as a JSON or text
   consultationType ConsultationType  @default(Messaging)
   doctorId         String
   doctor           Doctor            @relation(fields: [doctorId], references: [id])
   status           AppointmentStatus @default(Pending)
   createdAt        DateTime          @default(now())
-  scheduledAt      DateTime          @default(now()) // Auto-filled for urgent; selectable for non-urgent
+  date             String            // Date of the appointment
+  time             String             // Time of the appointment
 }
