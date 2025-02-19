@@ -1,0 +1,21 @@
+import { NextFunction, Request, Response } from "express";
+import { SearchService } from "../services/searchService";
+
+const searchService = new SearchService();
+
+
+export class SearchController{
+    async search(req: Request, res: Response, next: NextFunction): Promise<void> {
+
+        const query = req.query.keyword as string;
+        
+        try {
+           const results = await searchService.searchKeyWords(query); 
+
+           res.json(results);
+
+        } catch (error) {
+            next(error)
+        }
+    }
+}

@@ -62,4 +62,9 @@ export class AppointmentService {
       appointment: newAppointment
     }
   }
+
+  async getUpcomingAppointment() {
+   const upcomingAppointment = await prisma.appointment.findUnique({});
+  }
+    
 }

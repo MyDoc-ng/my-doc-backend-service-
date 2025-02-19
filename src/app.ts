@@ -3,6 +3,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes"; 
 import userRoutes from "./routes/userRoutes";
 import appointments from "./routes/appointmentRoute";
+import searchRoutes from "./routes/searchRoutes";
 import { errorMiddleware } from "./middleware/errorMiddleware";
 import { NotFoundException } from "./exception/not-found";
 import { ErrorCode } from "./exception/base";
@@ -30,6 +31,7 @@ app.use(responseFormatter);
 app.use('/api/auth', authRoutes);
 app.use('/api/', userRoutes);
 app.use('/api/', appointments);
+app.use('/api/', searchRoutes);
 
 
 // Handle non-existing routes
