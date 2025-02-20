@@ -42,8 +42,6 @@ export class AppointmentService {
 
     // console.log("Doctor created:", newDoctor);
 
-
-
     // Create appointment
     const newAppointment = await prisma.appointment.create({
       data: {
@@ -59,12 +57,25 @@ export class AppointmentService {
     });
 
     return {
-      appointment: newAppointment
-    }
+      appointment: newAppointment,
+    };
   }
 
-  async getUpcomingAppointment() {
-   const upcomingAppointment = await prisma.appointment.findUnique({});
-  }
+  async getUpcomingAppointment(userId: string) {
     
+    const upcomingAppointment = await prisma.appointment.findFirst({
+      where: {
+        patientEmail: userId,
+      },
+      orderBy: [
+        { date: "asc" }, // Order by nearest date
+        { time: "asc" }, // If same date, order by nearest time
+      ],
+      include: {
+        doctor: true,
+      },
+    });
+
+    return upcomingAppointment;
+  }
 }

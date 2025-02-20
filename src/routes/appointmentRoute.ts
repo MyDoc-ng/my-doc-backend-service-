@@ -14,4 +14,6 @@ router.get('/appointments', authenticate, appointmentController.getAppointments)
 // router.get('/appointments/:id', authenticate, appointmentController.getAppointment);
 router.post('/appointments', authenticate, validateData(appointmentSchema), appointmentController.createAppointment);
 
+router.get('/appointments/upcoming', authenticate, appointmentController.getUpcomingAppointment);
+
 export default router;

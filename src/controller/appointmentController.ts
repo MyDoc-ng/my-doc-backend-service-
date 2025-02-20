@@ -17,6 +17,7 @@ export class AppointmentController {
       next(error);
     }
   }
+
   async createAppointment(
     req: Request,
     res: Response,
@@ -26,6 +27,22 @@ export class AppointmentController {
       const appointments = await appointmentService.createAppointment(req.body);
 
       res.json(appointments);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async getUpcomingAppointment(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    const userId = req.query.userId as string;
+
+    try {
+      const upcomingAppointments = await appointmentService.getUpcomingAppointment(userId);
+
+      res.json(upcomingAppointments);
     } catch (error: any) {
       next(error);
     }
