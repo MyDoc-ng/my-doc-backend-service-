@@ -31,12 +31,54 @@ export class AppointmentService {
 
     // const newDoctor = await prisma.doctor.create({
     //   data: {
-    //     name: "Dr. John Doe",
-    //     specialty: "Cardiology",
-    //     experience: 10, // Years of experience
-    //     ratings: 4.8, // Example rating
-    //     bio: "Experienced cardiologist with a passion for heart health.",
-    //     profilePic: "https://example.com/profile.jpg", // Profile picture URL
+    //     userId: "62644d88-9368-4272-8341-bea505b1cb01",
+    //     specialization: "Optician",
+    //     experienceYears: 15, // Years of experience
+    //     ratings: 4.0, // Example rating
+    //     bio: "Experienced optician with a passion for eyes health.",
+    //     isOnline: true, // Profile picture URL
+    //     availability: [
+    //       {
+    //         day: "Monday",
+    //         slots: [
+    //           { start: "08:00", end: "12:00" },
+    //           { start: "14:00", end: "18:00" },
+    //         ],
+    //       },
+    //       {
+    //         day: "Tuesday",
+    //         slots: [
+    //           { start: "09:00", end: "11:00" },
+    //           { start: "15:00", end: "17:00" },
+    //         ],
+    //       },
+    //       {
+    //         day: "Wednesday",
+    //         slots: [{ start: "10:00", end: "14:00" }],
+    //       },
+    //       {
+    //         day: "Thursday",
+    //         slots: [
+    //           { start: "08:30", end: "12:30" },
+    //           { start: "13:30", end: "16:30" },
+    //         ],
+    //       },
+    //       {
+    //         day: "Friday",
+    //         slots: [
+    //           { start: "07:00", end: "11:00" },
+    //           { start: "13:00", end: "15:00" },
+    //         ],
+    //       },
+    //       {
+    //         day: "Saturday",
+    //         slots: [{ start: "09:00", end: "12:00" }],
+    //       },
+    //       {
+    //         day: "Sunday",
+    //         slots: [],
+    //       },
+    //     ],
     //   },
     // });
 
@@ -62,7 +104,6 @@ export class AppointmentService {
   }
 
   async getUpcomingAppointment(userId: string) {
-    
     const upcomingAppointment = await prisma.appointment.findFirst({
       where: {
         patientEmail: userId,

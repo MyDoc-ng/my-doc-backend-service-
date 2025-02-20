@@ -26,14 +26,11 @@ enum Roles {
 }
 
 enum ConsultationType {
-  Messaging
-  AudioCall
-  VideoCall
-}
-
-enum AppointmentType {
-  Urgent
-  NonUrgent
+  MESSAGING
+  AUDIOCALL
+  VIDEOCALL
+  CLINIC
+  HOME
 }
 
 enum AppointmentStatus {
@@ -199,7 +196,7 @@ model ChatMessage {
 
 model Session {
   id         String    @id @default(uuid())
-  type       String // "gopd-chat", "video", "audio", "home", "clinic"
+  type       ConsultationType 
   startTime  DateTime
   endTime    DateTime?
   userId     String

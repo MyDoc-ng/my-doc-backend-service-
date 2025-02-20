@@ -1,9 +1,10 @@
 import express, { Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
-import authRoutes from "./routes/authRoutes"; 
-import userRoutes from "./routes/userRoutes";
-import appointments from "./routes/appointmentRoute";
-import searchRoutes from "./routes/searchRoutes";
+import authRoutes from "./routes/auth.routes"; 
+import userRoutes from "./routes/user.routes";
+import doctorRoutes from "./routes/doctor.routes";
+import appointments from "./routes/appointment.routes";
+import searchRoutes from "./routes/search.routes";
 import { errorMiddleware } from "./middleware/errorMiddleware";
 import { NotFoundException } from "./exception/not-found";
 import { ErrorCode } from "./exception/base";
@@ -30,6 +31,7 @@ app.use(responseFormatter);
 // Register routes
 app.use('/api/auth', authRoutes);
 app.use('/api/', userRoutes);
+app.use('/api/', doctorRoutes);
 app.use('/api/', appointments);
 app.use('/api/', searchRoutes);
 
