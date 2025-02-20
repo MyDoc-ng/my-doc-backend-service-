@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { AuthService } from "../services/authService";
+import { AuthService } from "../services/auth.service";
 import jwt from "jsonwebtoken";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";

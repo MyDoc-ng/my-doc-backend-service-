@@ -1,8 +1,8 @@
 import express, { Router } from 'express';
-import { AppointmentController } from '../controller/appointmentController';
+import { AppointmentController } from '../controller/appointment.controller';
 import authenticate from '../middleware/authMiddleware';
 import { validateData } from '../middleware/validationMiddleware';
-import { appointmentSchema } from '../schema/appointmentSchema';
+import { appointmentSchema } from '../schema/appointment.schema';
 
 
 const appointmentController = new AppointmentController();
