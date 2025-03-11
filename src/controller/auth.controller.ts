@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
-import jwt from "jsonwebtoken";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
 
@@ -41,7 +40,7 @@ export class AuthController {
       const { email, password }: { email: string; password: string } = req.body;
       const result = await authService.loginUser(email, password);
 
-      if (result.token) {
+      if (result.accessToken) {
         res.json(result);
       } else {
         res.status(401).json({ message: "Invalid credentials" });
@@ -118,9 +117,32 @@ export class AuthController {
       const data = await authService.verifyAppleToken(idToken, appleUserId);
 
       return res.status(401).json({ data });
-      
     } catch (error) {
       next(error);
     }
   }
+
+  async refreshToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const { token } = req.body;
+      const newAccessToken = await authService.refreshAccessToken(token);
+      res.json({ accessToken: newAccessToken });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async logout (req: Request, res: Response): Promise<any> {
+    const { token } = req.body;
+  
+    // Delete Refresh Token from DB
+    // await prisma.refreshToken.deleteMany({ where: { token } });
+  
+    res.json({ message: "Logged out successfully" });
+  };
+  
 }

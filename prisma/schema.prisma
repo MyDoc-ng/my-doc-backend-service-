@@ -25,10 +25,10 @@ enum Roles {
   DOCTOR
 }
 
-enum ConsultationType {
-  MESSAGING
-  AUDIOCALL
-  VIDEOCALL
+enum SessionType {
+  CHAT
+  AUDIO
+  VIDEO
   CLINIC
   HOME
 }
@@ -67,9 +67,10 @@ model User {
   medicalRecords MedicalRecord[]
   chatMessages   ChatMessage[]    @relation("UserChats")
   BookedFor      Appointment[]    @relation("BookedFor")
+  refreshTokens  RefreshToken[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
   @@map("users")
 }
@@ -104,7 +105,7 @@ model Doctor {
   ratings               Float?             @default(0)
   certifications        String? // comma separated string of certifications
   location              String? //Store Address
-  consultationTypes     ConsultationType[]
+  consultationTypes     SessionType[]
   fees                  Json? // { "video": 5000, "home": 10000, "clinic": 8000 }
   availability          Json? // { "2023-10-01": ["10:00", "11:00"], ... }
   isOnline              Boolean            @default(false)
@@ -117,6 +118,7 @@ model Doctor {
   appointments          Appointment[]
   MedicalRecord         MedicalRecord[]
   chatMessages          ChatMessage[]      @relation("DoctorChats")
+  DoctorSpecialty       DoctorSpecialty[]
 
   @@map("doctors")
 }
@@ -195,18 +197,18 @@ model ChatMessage {
 }
 
 model Session {
-  id         String    @id @default(uuid())
-  type       ConsultationType 
+  id         String           @id @default(uuid())
+  type       SessionType
   startTime  DateTime
   endTime    DateTime?
   userId     String
   doctorId   String
   profileId  String?
-  user       User      @relation(fields: [userId], references: [id])
-  doctor     Doctor    @relation(fields: [doctorId], references: [id])
-  profile    Profile?  @relation(fields: [profileId], references: [id])
+  user       User             @relation(fields: [userId], references: [id])
+  doctor     Doctor           @relation(fields: [doctorId], references: [id])
+  profile    Profile?         @relation(fields: [profileId], references: [id])
   symptoms   String?
-  isReferral Boolean   @default(false)
+  isReferral Boolean          @default(false)
 }
 
 model Profile {
@@ -253,4 +255,27 @@ model Appointment {
   updatedAt       DateTime          @updatedAt
 
   @@map("appointments")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model DoctorSpecialty {
+  id        String @id @default(uuid())
+  doctorId  String
+  specialty String
+
+  doctor Doctor @relation(fields: [doctorId], references: [id])
+}
+
+model Symptom {
+  id       String @id @default(uuid())
+  name     String @unique // e.g., "Fever", "Cough"
+  category String // e.g., "Respiratory", "Gastrointestinal"
 }

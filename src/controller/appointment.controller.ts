@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { AppointmentService } from "../services/appointment.service";
+import { Prisma } from "@prisma/client";
 
 const appointmentService = new AppointmentService();
 

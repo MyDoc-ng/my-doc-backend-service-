@@ -4,9 +4,7 @@ import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
 import { NotFoundException } from "../exception/not-found";
-import appleSigninAuth from 'apple-signin-auth';
-
-
+import appleSigninAuth from "apple-signin-auth";
 
 // Type for Register User Data
 interface RegisterUserData {
@@ -21,7 +19,8 @@ interface UserPhotoData {
 
 // Type for Login Response
 interface LoginResponse {
-  token: string;
+  accessToken: string;
+  refreshToken: string;
   name: string;
   email: string;
 }
@@ -139,12 +138,20 @@ export class AuthService {
       );
     }
 
-    const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET as string, {
-      expiresIn: "1h",
+    const accessToken = generateAuthToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
     });
 
     return {
-      token,
+      accessToken,
+      refreshToken,
       name: user.name,
       email: user.email,
     };
@@ -199,16 +206,18 @@ export class AuthService {
 
     return { token, user };
   }
-  
+
   async verifyAppleToken(idToken: string): Promise<any> {
-    
-    const decodedToken = await appleSigninAuth.verifyIdToken(idToken,{
+    const decodedToken = await appleSigninAuth.verifyIdToken(idToken, {
       audience: process.env.APP_BUNDLE_ID as string,
       ignoreExpiration: false,
     });
 
     if (!decodedToken) {
-      throw new BadRequestException('Invalid Apple ID token', ErrorCode.BADREQUEST);
+      throw new BadRequestException(
+        "Invalid Apple ID token",
+        ErrorCode.BADREQUEST
+      );
     }
 
     const { sub: appleId, email } = decodedToken;
@@ -218,21 +227,55 @@ export class AuthService {
       where: { appleId },
     });
 
-   // If the user doesn't exist, create a new user
-   if (!appleUser) {
-    appleUser = await prisma.user.create({
-      data: {
-        appleId,
-        email: email || '', 
-        name: '',
-      },
-    });
-  }
+    // If the user doesn't exist, create a new user
+    if (!appleUser) {
+      appleUser = await prisma.user.create({
+        data: {
+          appleId,
+          email: email || "",
+          name: "",
+        },
+      });
+    }
 
     // Generate a token (e.g., JWT or session token)
     const token = generateAuthToken(appleUser);
 
     return { token, appleUser };
+  }
+
+  async refreshAccessToken(refreshToken: string) {
+    if (!refreshToken) throw new BadRequestException("No token provided", ErrorCode.FORBIDDEN);
+
+    // Find Refresh Token in DB
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
+    });
+
+    if (!storedToken) throw new BadRequestException("Invalid refresh token", ErrorCode.FORBIDDEN);
+
+    try {
+      // Verify token
+      const decoded = jwt.verify(
+        refreshToken,
+        process.env.REFRESH_SECRET as string
+      ) as any;
+
+      // Generate new Access Token
+      const newAccessToken = jwt.sign(
+        { id: decoded.id },
+        process.env.JWT_SECRET as string,
+        { expiresIn: "10h" }
+      );
+
+      return newAccessToken;
+
+    } catch (error) {
+      throw new BadRequestException(
+        "Invalid or expired refresh token",
+        ErrorCode.FORBIDDEN
+      );
+    }
   }
 }
 
@@ -241,3 +284,10 @@ function generateAuthToken(user: any) {
     expiresIn: "10h",
   });
 }
+
+function generateRefreshToken(user: any) {
+  return jwt.sign({ id: user.id }, process.env.REFRESH_SECRET as string, {
+    expiresIn: "7d",
+  });
+}
+

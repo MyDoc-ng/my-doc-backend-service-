@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes"; 
 import userRoutes from "./routes/user.routes";
 import doctorRoutes from "./routes/doctor.routes";
-import appointments from "./routes/appointment.routes";
+import bookingRoutes from "./routes/booking.routes";
 import searchRoutes from "./routes/search.routes";
 import { errorMiddleware } from "./middleware/errorMiddleware";
 import { NotFoundException } from "./exception/not-found";
@@ -32,7 +32,7 @@ app.use(responseFormatter);
 app.use('/api/auth', authRoutes);
 app.use('/api/', userRoutes);
 app.use('/api/', doctorRoutes);
-app.use('/api/', appointments);
+app.use('/api/', bookingRoutes);
 app.use('/api/', searchRoutes);
 
 

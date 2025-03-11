@@ -10,7 +10,10 @@ const doctorController = new DoctorController();
 const bookingController = new BookingController();
 const walletController = new WalletController();
 
-router.get("/doctors", [authenticate], doctorController.getDoctors);
+router.get("/doctors", [authenticate], doctorController.index);
+router.post("/doctors", [authenticate], doctorController.create);
+
+
 router.get("/doctors/top", [authenticate], doctorController.getTopDoctors);
 // router.get('/doctors', bookingController.searchDoctors);
 router.get(
@@ -20,12 +23,6 @@ router.get(
 );
 // router.post("/appointments", [authenticate], bookingController.bookAppointment);
 
-// GOPD Consultation
-router.post(
-  "/gopd/start",
-  [authenticate],
-  bookingController.startGopdConsultation
-);
 
 // Wallet
 router.post("/wallet/top-up", [authenticate], walletController.topUpWallet);
