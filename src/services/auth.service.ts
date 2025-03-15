@@ -11,7 +11,7 @@ import {
   UserPhotoData,
 } from "../models/auth.model";
 import { OAuth2Client } from "google-auth-library";
-import { generateVerificationToken } from "../utils/verifyToken";
+import { generateVerificationToken } from "../utils/generate_verify_token";
 import { EmailService } from "./email.service";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -155,7 +155,7 @@ export class AuthService {
   static async verifyGoogleToken(idToken: string): Promise<any> {
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_BACKEND_ID as string, // Specify the CLIENT_ID of the app that the token is intended for
+      audience: process.env.GOOGLE_BACKEND_ID as string,
     });
 
     const payload = ticket.getPayload();
@@ -169,18 +169,15 @@ export class AuthService {
 
     const { sub: googleId, email, name, picture } = payload;
 
-    // Check or create user in database
     let user = await prisma.user.upsert({
       where: { email: email },
       update: {
-        // Update existing user
         googleId: googleId,
         name: name || "",
         profilePicture: picture || "",
         verificationToken: generateVerificationToken(),
       },
       create: {
-        // Create new user
         googleId: googleId,
         email: email || "",
         name: name || "",
@@ -196,24 +193,44 @@ export class AuthService {
           user.verificationToken!
         );
       } catch (error) {
-        // Handle email sending failure more gracefully
         console.error("Error sending verification email:", error);
-        // Consider logging the error and potentially retrying the email later
       }
     }
-    // Generate a token (e.g., JWT or session token)
-    const token = generateAuthToken(user);
 
-    return { token, user };
+    // Generate both access and refresh tokens
+    const accessToken = generateAuthToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    // Store refresh token in database
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      },
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        photo: user.profilePicture
+      }
+    };
   }
+
 
   static async refreshAccessToken(refreshToken: string) {
     if (!refreshToken)
-      throw new BadRequestException("No token provided", ErrorCode.FORBIDDEN);
+      throw new BadRequestException("Refresh token is required", ErrorCode.FORBIDDEN);
 
     // Find Refresh Token in DB
     const storedToken = await prisma.refreshToken.findUnique({
       where: { token: refreshToken },
+      include: { user: true }, // Include user data
     });
 
     if (!storedToken)
@@ -222,6 +239,18 @@ export class AuthService {
         ErrorCode.FORBIDDEN
       );
 
+    // Check if token is expired
+    if (storedToken.expiresAt < new Date()) {
+      // Delete expired token
+      await prisma.refreshToken.delete({
+        where: { token: refreshToken },
+      });
+      throw new BadRequestException(
+        "Refresh token has expired",
+        ErrorCode.FORBIDDEN
+      );
+    }
+
     try {
       // Verify token
       const decoded = jwt.verify(
@@ -229,21 +258,40 @@ export class AuthService {
         process.env.REFRESH_SECRET as string
       ) as any;
 
-      // Generate new Access Token
-      const newAccessToken = jwt.sign(
-        { id: decoded.id },
-        process.env.JWT_SECRET as string,
-        { expiresIn: "10h" }
-      );
+      // Generate new tokens
+      const newAccessToken = generateAuthToken(storedToken.user);
+      const newRefreshToken = generateRefreshToken(storedToken.user);
 
-      return newAccessToken;
+      // Implement refresh token rotation - delete old and create new
+      await prisma.$transaction([
+        prisma.refreshToken.delete({
+          where: { token: refreshToken },
+        }),
+        prisma.refreshToken.create({
+          data: {
+            token: newRefreshToken,
+            userId: decoded.id,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          },
+        }),
+      ]);
+
+      return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      };
     } catch (error) {
+      // Delete invalid token
+      await prisma.refreshToken.delete({
+        where: { token: refreshToken },
+      });
       throw new BadRequestException(
         "Invalid or expired refresh token",
         ErrorCode.FORBIDDEN
       );
     }
   }
+
 
   static async sendVerificationEmail(
     email: string,

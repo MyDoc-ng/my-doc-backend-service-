@@ -2,8 +2,6 @@ import express, { Router } from "express";
 import authenticate from "../middleware/authMiddleware";
 import { DoctorController } from "../controller/doctor.controller";
 import { ConsultationController } from "../controller/consultation.controller";
-import { google } from "googleapis";
-import { AuthController } from "../controller/auth.controller";
 
 const router: Router = express.Router();
 

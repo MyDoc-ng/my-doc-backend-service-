@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { UnauthorizedException } from "../exception/unauthorized";
 import { ErrorCode } from "../exception/base";
-import { log } from "console";
 
 interface AuthenticatedRequest extends Request {
   user?: JwtPayload | string; // Extend the request object to include a `user` property

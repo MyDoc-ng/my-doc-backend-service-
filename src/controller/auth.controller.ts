@@ -100,16 +100,17 @@ export class AuthController {
     }
   }
 
-  static async refreshToken(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<any> {
+  static async refreshToken(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
-      const { token } = req.body;
-      const newAccessToken = await AuthService.refreshAccessToken(token);
-      res.json({ accessToken: newAccessToken });
-    } catch (error) {
+      const { refreshToken } = req.body;
+
+      const tokens = await AuthService.refreshAccessToken(refreshToken);
+
+      return res.status(200).json({
+        status: "success",
+        data: tokens,
+      });
+    } catch (error: any) {
       next(error);
     }
   }
@@ -179,7 +180,7 @@ export class AuthController {
         data: { emailVerified: true, verificationToken: null },
       });
 
-      res.send("Email verified successfully!");
+      res.status(201).json("Email verified successfully!");
     } catch (error) {
       next(error);
       console.error("Error verifying email:", error);

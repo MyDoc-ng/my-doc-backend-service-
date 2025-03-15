@@ -13,6 +13,8 @@ router.post('/register', validateData(userRegisterSchema), AuthController.regist
 // User login route
 router.post('/login', validateData(userLoginSchema), AuthController.login);
 
+router.post('/refresh-token', AuthController.refreshToken);
+
 router.put('/submit-biodata', validateData(userBiodataSchema), AuthController.submitBiodata);
 
 router.put("/upload-photo", upload.single("photo"), AuthController.uploadUserPhoto);

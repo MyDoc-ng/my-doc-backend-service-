@@ -3,7 +3,7 @@ import { Session, Profile, TransactionType, AppointmentStatus } from "@prisma/cl
 import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
-import { createGoogleMeetEvent } from "../utils/verifyToken";
+import { createGoogleMeetEvent } from "../utils/generate_verify_token";
 import { BookingData } from "../models/consultation.model";
 
 export class ConsultationService {

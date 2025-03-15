@@ -57,8 +57,6 @@ model User {
   profilePicture    String? // Photo URL
   googleId          String?          @unique
   facebookId        String?          @unique
-  accessToken       String?
-  refreshToken      String?
   profiles          Profile[]
   appointments      Consultation[]
   medicalRecords    MedicalRecord[]
@@ -66,7 +64,6 @@ model User {
 
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
-  doctorId     String?
   Payments     Payment[]
   RefreshToken RefreshToken[]
 
@@ -80,6 +77,8 @@ model MedicalHistory {
   pastSurgeries Boolean
   currentMeds   Boolean
   drugAllergies Boolean
+
+  @@map("medical_histories")
 }
 
 model Doctor {
@@ -277,4 +276,6 @@ model RefreshToken {
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
 }
