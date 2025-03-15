@@ -1,7 +1,5 @@
-// src/middleware/response.middleware.ts
-
 import { Request, Response, NextFunction } from "express";
-import { BaseHttpException } from "../exception/base"; // Import your BaseHttpException
+import { responseService } from "../services/response.service";
 
 const responseFormatter = (req: Request, res: Response, next: NextFunction) => {
   // Store the original `res.json` method
@@ -9,35 +7,24 @@ const responseFormatter = (req: Request, res: Response, next: NextFunction) => {
 
   // Override `res.json`
   res.json = function (body: any) {
-    // Check if the response is already formatted (has success, data, error)
+    // If the response is already formatted, return it as is
     if (body?.success !== undefined || body?.data !== undefined || body?.error !== undefined) {
-      // If already formatted, call the original `res.json`
       return originalJson.call(this, body);
     }
 
-    let success = true; // Default to true
-    let data = body;      // Assign body to data
-    let error = null;
-
-    // Check if it's an error response based on your error structure
+    // If the body has an error structure, use `responseService.error`
     if (body?.message && body?.errorCode) {
-      success = false;
-      data = null; // No data in case of an error
-      error = {
-        message: body.message,
-        errorCode: body.errorCode,
-        errors: body.errors, // Add errors to the error object if needed
-      };
+      return originalJson.call(
+        this,
+        responseService.error(body.message, {
+          errorCode: body.errorCode,
+          error: body.errors,
+        })
+      );
     }
 
-    // Wrap the response in a standardized structure
-    const formattedResponse = {
-      success: success,
-      data: data,
-      error: error, // Include the error object
-    };
-
-    return originalJson.call(this, formattedResponse);
+    // Otherwise, wrap it in a success response
+    return originalJson.call(this, responseService.success("successful", body));
   };
 
   next();
