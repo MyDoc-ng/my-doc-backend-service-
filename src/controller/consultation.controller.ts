@@ -1,16 +1,16 @@
 // src/controllers/booking.controller.ts
 import { NextFunction, Request, Response } from "express";
-import { BookingService } from "../services/booking.service";
+import { ConsultationService } from "../services/consultation.service";
 // import { findDoctors, getDoctorAvailability } from '../services/doctor.service';
 import { DoctorService } from "../services/doctor.service";
-import { ConsultationType } from "@prisma/client";
+import { SessionType } from "@prisma/client";
 import { NotFoundException } from "../exception/not-found";
 import { ErrorCode } from "../exception/base";
 
-const bookingService = new BookingService();
+
 const doctorService = new DoctorService();
 
-export class BookingController {
+export class ConsultationController {
 
   async startGopdConsultation(req: Request, res: Response, next: NextFunction):Promise<any> {
     try {
@@ -73,6 +73,25 @@ export class BookingController {
       res.json(profile);
     } catch (error) {
       next(error);
+    }
+  }
+
+  static async bookConsultation(req: Request, res: Response, next: NextFunction) {
+    try {
+      const consultation = await ConsultationService.bookConsultation(req.body);
+      res.json(consultation);
+    } catch (error :any) {
+      next(error)
+      res.status(500).json({ message: error.message });
+    }
+  }
+
+  static async getConsultationById(req: Request, res: Response) {
+    try {
+      const consultation = await ConsultationService.getConsultationById(req.params.id);
+      res.json(consultation);
+    } catch (error) {
+      res.status(404).json({ message: "Consultation not found" });
     }
   }
 }

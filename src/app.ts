@@ -1,9 +1,9 @@
 import express, { Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
-import authRoutes from "./routes/auth.routes"; 
+import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import doctorRoutes from "./routes/doctor.routes";
-import bookingRoutes from "./routes/booking.routes";
+import consultationRoutes from "./routes/consultation.routes";
 import searchRoutes from "./routes/search.routes";
 import { errorMiddleware } from "./middleware/errorMiddleware";
 import { NotFoundException } from "./exception/not-found";
@@ -29,16 +29,17 @@ app.use(responseFormatter);
 // });
 
 // Register routes
-app.use('/api/auth', authRoutes);
-app.use('/api/', userRoutes);
-app.use('/api/', doctorRoutes);
-app.use('/api/', bookingRoutes);
-app.use('/api/', searchRoutes);
-
+app.use("/api/auth/", authRoutes);
+app.use("/api/", userRoutes);
+app.use("/api/", doctorRoutes);
+app.use("/api/", consultationRoutes);
+app.use("/api/", searchRoutes);
 
 // Handle non-existing routes
 app.use((_req: Request, res: Response, next: NextFunction) => {
-  next(new NotFoundException(`Route ${_req.url} not found`, ErrorCode.NOTFOUND));
+  next(
+    new NotFoundException(`Route ${_req.url} not found`, ErrorCode.NOTFOUND)
+  );
 });
 
 app.use(errorMiddleware);

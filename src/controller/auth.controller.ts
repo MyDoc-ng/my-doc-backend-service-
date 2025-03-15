@@ -1,33 +1,36 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
-import { BadRequestException } from "../exception/bad-request";
-import { ErrorCode } from "../exception/base";
-
-const authService = new AuthService();
+import {
+  handleOAuthCallback,
+  saveTokensAndCalendarId,
+} from "../utils/oauthUtils";
+import { prisma } from "../prisma/prisma";
 
 export class AuthController {
   // Register a new user
-  async register(
+  static async register(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
-      const user = await authService.registerUser(req.body);
-      res.status(201).json({ message: "User registered successfully", user });
+      const user = await AuthService.registerUser(req.body);
+      res
+        .status(201)
+        .json({ message: "User registered successfully", data: user });
     } catch (error: any) {
       next(error);
     }
   }
 
   // Register a new user
-  async submitBiodata(
+  static async submitBiodata(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<void> {
     try {
-      const user = await authService.submitBiodata(req.body);
+      const user = await AuthService.submitBiodata(req.body);
       res.status(201).json(user);
     } catch (error: any) {
       next(error);
@@ -35,10 +38,14 @@ export class AuthController {
   }
 
   // Login user and generate a JWT token
-  async login(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async login(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { email, password }: { email: string; password: string } = req.body;
-      const result = await authService.loginUser(email, password);
+      const result = await AuthService.loginUser(email, password);
 
       if (result.accessToken) {
         res.json(result);
@@ -50,7 +57,7 @@ export class AuthController {
     }
   }
 
-  async uploadUserPhoto(
+  static async uploadUserPhoto(
     req: Request,
     res: Response,
     next: NextFunction
@@ -77,72 +84,106 @@ export class AuthController {
     }
   }
 
-  async googleAuth(
+  static async googleAuth(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<any> {
     const { idToken } = req.body;
 
-    if (!idToken) {
-      next(
-        new BadRequestException("ID token is required", ErrorCode.BADREQUEST)
-      );
-    }
-
     try {
-      const data = await authService.verifyGoogleToken(idToken);
+      const data = await AuthService.verifyGoogleToken(idToken); // Verify the token with Google's servers.
 
-      return res.status(401).json({ data });
+      res.json({ message: "Google login successful", data });
     } catch (error) {
       next(error);
     }
   }
 
-  async appleAuth(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<any> {
-    const { idToken, appleUserId } = req.body;
-
-    if (!idToken || !appleUserId) {
-      throw new BadRequestException(
-        "ID token and Apple User ID are required",
-        ErrorCode.BADREQUEST
-      );
-    }
-
-    try {
-      const data = await authService.verifyAppleToken(idToken, appleUserId);
-
-      return res.status(401).json({ data });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async refreshToken(
+  static async refreshToken(
     req: Request,
     res: Response,
     next: NextFunction
   ): Promise<any> {
     try {
       const { token } = req.body;
-      const newAccessToken = await authService.refreshAccessToken(token);
+      const newAccessToken = await AuthService.refreshAccessToken(token);
       res.json({ accessToken: newAccessToken });
     } catch (error) {
       next(error);
     }
   }
 
-  async logout (req: Request, res: Response): Promise<any> {
+  static async logout(req: Request, res: Response): Promise<any> {
     const { token } = req.body;
-  
+
     // Delete Refresh Token from DB
-    // await prisma.refreshToken.deleteMany({ where: { token } });
-  
+    await prisma.refreshToken.deleteMany({ where: { token } });
+
     res.json({ message: "Logged out successfully" });
-  };
-  
+  }
+
+  static async oAuth2Callback(req: Request, res: Response): Promise<any> {
+    const code = req.query.code as string;
+    const state = req.query.state as string;
+
+    try {
+      const { tokens, calendarId } = await handleOAuthCallback(code);
+
+      const [entityType, entityIdStr] = state.split("_");
+      const entityId = parseInt(entityIdStr);
+
+      if (entityType === "doctor" || entityType === "user") {
+        await saveTokensAndCalendarId({
+          entityType: entityType,
+          entityId: entityId,
+          tokens: tokens,
+          calendarId: calendarId,
+        });
+        res.send(
+          `${
+            entityType.charAt(0).toUpperCase() + entityType.slice(1)
+          } Google Calendar connected successfully!`
+        );
+      } else {
+        return res.status(400).send("Invalid state.");
+      }
+    } catch (error) {
+      console.error("Error during Google OAuth2 flow:", error);
+      res.status(500).send("Error connecting to Google Calendar.");
+    }
+  }
+
+  static async verifyEmail(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    const { token } = req.query;
+
+    if (!token || typeof token !== "string") {
+      return res.status(400).send("Invalid verification token.");
+    }
+
+    try {
+      const user = await prisma.user.findFirst({
+        where: { verificationToken: token },
+      });
+
+      if (!user) {
+        return res.status(400).send("Invalid or expired verification token.");
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerified: true, verificationToken: null },
+      });
+
+      res.send("Email verified successfully!");
+    } catch (error) {
+      next(error);
+      console.error("Error verifying email:", error);
+      res.status(500).send("An error occurred while verifying your email.");
+    }
+  }
 }

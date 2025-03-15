@@ -1,30 +1,32 @@
 import express, { Router } from "express";
 import authenticate from "../middleware/authMiddleware";
 import { DoctorController } from "../controller/doctor.controller";
-import { BookingController } from "../controller/booking.controller";
-import { WalletController } from "../controller/wallet.controller";
+import { ConsultationController } from "../controller/consultation.controller";
+import { google } from "googleapis";
+import { AuthController } from "../controller/auth.controller";
 
 const router: Router = express.Router();
 
-const doctorController = new DoctorController();
-const bookingController = new BookingController();
-const walletController = new WalletController();
+const consultationController = new ConsultationController();
 
-router.get("/doctors", [authenticate], doctorController.index);
-router.post("/doctors", [authenticate], doctorController.create);
+// Route to initiate Google OAuth2 flow for doctor
+router.get("/auth/google/doctor/:doctorId", DoctorController.googleOAuth2);
+router.get("/auth/google/doctor/callback", DoctorController.oAuth2Callback);
 
 
-router.get("/doctors/top", [authenticate], doctorController.getTopDoctors);
-// router.get('/doctors', bookingController.searchDoctors);
+router.get("/doctors", [authenticate], DoctorController.index);
+router.get("/:id", [authenticate], DoctorController.show);
+router.get("/doctors/top", [authenticate], DoctorController.topDoctors);
+router.get(
+  "/doctors/general-practitioners",
+  [authenticate],
+  DoctorController.generalPractitioners
+);
+
 router.get(
   "/doctors/:doctorId/availability",
   [authenticate],
-  bookingController.getDoctorAvailability
+  consultationController.getDoctorAvailability
 );
-// router.post("/appointments", [authenticate], bookingController.bookAppointment);
-
-
-// Wallet
-router.post("/wallet/top-up", [authenticate], walletController.topUpWallet);
 
 export default router;

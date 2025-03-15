@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["fullTextSearchPostgres"]
@@ -41,50 +35,42 @@ enum AppointmentStatus {
   CANCELLED
 }
 
+enum TransactionType {
+  TOP_UP
+  CONSULTATION
+  REFERRAL
+}
+
 model User {
-  id             String           @id @default(uuid())
-  name           String
-  email          String           @unique
-  password       String?
-  dateOfBirth    DateTime?        @db.Date
-  gender         Gender           @default(MALE)
-  role           Roles            @default(USER)
-  phoneNumber    String?          @unique
-  address        String?
-  medicalHistory MedicalHistory[]
-  otp            String? // OTP for phone verification
-  isVerified     Boolean?         @default(false)
-  profilePicture String? // Photo URL
-  googleId       String?          @unique
-  appleId        String?          @unique
-  wallet         Wallet?
-  walletId       String?
-  Doctor         Doctor?
-  profiles       Profile[]
-  sessions       Session[]
-  transactions   Transaction[]
-  appointments   Appointment[]
-  medicalRecords MedicalRecord[]
-  chatMessages   ChatMessage[]    @relation("UserChats")
-  BookedFor      Appointment[]    @relation("BookedFor")
-  refreshTokens  RefreshToken[]
+  id                String           @id @default(uuid())
+  name              String
+  email             String           @unique
+  password          String?
+  dateOfBirth       DateTime?        @db.Date
+  gender            Gender           @default(MALE)
+  role              Roles            @default(USER)
+  phoneNumber       String?          @unique
+  address           String?
+  medicalHistory    MedicalHistory[]
+  emailVerified     Boolean          @default(false) // Add this
+  verificationToken String? // Store Verification Token
+  profilePicture    String? // Photo URL
+  googleId          String?          @unique
+  facebookId        String?          @unique
+  accessToken       String?
+  refreshToken      String?
+  profiles          Profile[]
+  appointments      Consultation[]
+  medicalRecords    MedicalRecord[]
+  chatMessages      ChatMessage[]    @relation("UserChats")
 
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+  doctorId     String?
+  Payments     Payment[]
+  RefreshToken RefreshToken[]
 
   @@map("users")
-}
-
-model Wallet {
-  id           String        @id @default(uuid())
-  userId       String        @unique
-  user         User          @relation(fields: [userId], references: [id])
-  balance      Float         @default(0) // Store balance in smallest currency unit (e.g., cents)
-  transactions Transaction[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  @@map("wallets")
 }
 
 model MedicalHistory {
@@ -97,28 +83,35 @@ model MedicalHistory {
 }
 
 model Doctor {
-  id                    String             @id @default(uuid())
-  userId                String?            @unique
-  user                  User?              @relation(fields: [userId], references: [id]) // Reference the user model to store authentication info
+  id                    String               @id @default(uuid())
+  name                  String?
   specialization        String?
-  experienceYears       Int?
-  ratings               Float?             @default(0)
-  certifications        String? // comma separated string of certifications
-  location              String? //Store Address
+  experience            Int?
+  ratings               Float?               @default(0)
+  certifications        String?
+  location              String?
   consultationTypes     SessionType[]
-  fees                  Json? // { "video": 5000, "home": 10000, "clinic": 8000 }
-  availability          Json? // { "2023-10-01": ["10:00", "11:00"], ... }
-  isOnline              Boolean            @default(false)
-  lastActive            DateTime?
-  sessions              Session[]
+  consultationFees      Float?
   homeVisitCharge       Float? // added based on distance
   videoConsultationFee  Float?
   clinicConsultationFee Float?
+  availability          DoctorAvailability[]
+  isOnline              Boolean              @default(false)
+  lastActive            DateTime?
+  sessions              Session[]
   bio                   String?
-  appointments          Appointment[]
+  accessToken           String?
+  refreshToken          String?
+  password              String?
+  googleId              String?
+  consultations         Consultation[]
   MedicalRecord         MedicalRecord[]
-  chatMessages          ChatMessage[]      @relation("DoctorChats")
-  DoctorSpecialty       DoctorSpecialty[]
+  chatMessages          ChatMessage[]        @relation("DoctorChats")
+  specialtyId           String
+  specialty             Specialty            @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  Payment               Payment[]
+  googleCalendarId      String? // Doctor's Google Calendar ID
+  googleRefreshToken    String? // Doctor's Google OAuth2 Refresh Token
 
   @@map("doctors")
 }
@@ -197,64 +190,84 @@ model ChatMessage {
 }
 
 model Session {
-  id         String           @id @default(uuid())
+  id         String      @id @default(uuid())
   type       SessionType
   startTime  DateTime
   endTime    DateTime?
   userId     String
   doctorId   String
   profileId  String?
-  user       User             @relation(fields: [userId], references: [id])
-  doctor     Doctor           @relation(fields: [doctorId], references: [id])
-  profile    Profile?         @relation(fields: [profileId], references: [id])
+  doctor     Doctor      @relation(fields: [doctorId], references: [id])
   symptoms   String?
-  isReferral Boolean          @default(false)
+  isReferral Boolean     @default(false)
+
+  @@map("sessions")
 }
 
 model Profile {
-  id       String    @id @default(uuid())
+  id       String @id @default(uuid())
   fullName String
   contact  String
   gender   String
   age      Int
   userId   String
-  user     User      @relation(fields: [userId], references: [id])
-  sessions Session[]
+  user     User   @relation(fields: [userId], references: [id])
+
+  @@map("profiles")
 }
 
-model Transaction {
-  id        String          @id @default(uuid())
-  amount    Int
-  type      TransactionType
-  promoCode String?
-  userId    String
-  user      User            @relation(fields: [userId], references: [id])
-  createdAt DateTime        @default(now())
-  Wallet    Wallet?         @relation(fields: [walletId], references: [id])
-  walletId  String?
+model Consultation {
+  id               String            @id @default(uuid())
+  doctorId         String
+  patientId        String
+  status           AppointmentStatus @default(PENDING)
+  consultationType SessionType
+  googleMeetLink   String?
+  notes            String?
+  startTime        DateTime
+  endTime          DateTime
+  googleEventId    String? // ID of the event in Google Calendar
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  patient User   @relation(fields: [patientId], references: [id]) //User Making the Appointment
+  doctor  Doctor @relation(fields: [doctorId], references: [id])
+
+  @@map("consultations")
 }
 
-enum TransactionType {
-  TOP_UP
-  CONSULTATION
-  REFERRAL
+model Specialty {
+  id      String   @id @default(uuid())
+  name    String   @unique()
+  doctors Doctor[]
+
+  @@map("specialties")
 }
 
-model Appointment {
-  id              String            @id @default(uuid())
-  doctorId        String
-  doctor          Doctor            @relation(fields: [doctorId], references: [id])
-  patientId       String //Foreign Key to User if the User is Booking for themselves
-  patient         User              @relation(fields: [patientId], references: [id]) //User Making the Appointment
-  bookedForId     String?
-  BookedFor       User?             @relation("BookedFor", fields: [bookedForId], references: [id]) //The actual patient
-  appointmentTime DateTime
-  status          AppointmentStatus @default(PENDING)
-  notes           String?
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+model DoctorAvailability {
+  id       String   @id @default(uuid())
+  doctorId String
+  date     DateTime
+  time     String // Store time as a string like "10:00 AM", "11:00 AM"
 
-  @@map("appointments")
+  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@map("doctor_availabilities")
+}
+
+model Payment {
+  id            String   @id @default(uuid())
+  patientId     String
+  doctorId      String
+  amount        Float
+  status        String   @default("pending") // pending, successful, failed
+  transactionId String
+  createdAt     DateTime @default(now())
+
+  patient User   @relation(fields: [patientId], references: [id])
+  doctor  Doctor @relation(fields: [doctorId], references: [id])
+
+  @@map("payments")
 }
 
 model RefreshToken {
@@ -264,18 +277,4 @@ model RefreshToken {
   userId    String
   expiresAt DateTime
   createdAt DateTime @default(now())
-}
-
-model DoctorSpecialty {
-  id        String @id @default(uuid())
-  doctorId  String
-  specialty String
-
-  doctor Doctor @relation(fields: [doctorId], references: [id])
-}
-
-model Symptom {
-  id       String @id @default(uuid())
-  name     String @unique // e.g., "Fever", "Cough"
-  category String // e.g., "Respiratory", "Gastrointestinal"
 }

@@ -4,44 +4,20 @@ import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
 import { NotFoundException } from "../exception/not-found";
-import appleSigninAuth from "apple-signin-auth";
+import {
+  LoginResponse,
+  RegisterUserData,
+  UserBioData,
+  UserPhotoData,
+} from "../models/auth.model";
+import { OAuth2Client } from "google-auth-library";
+import { generateVerificationToken } from "../utils/verifyToken";
+import { EmailService } from "./email.service";
 
-// Type for Register User Data
-interface RegisterUserData {
-  name: string;
-  email: string;
-  password: string;
-}
-interface UserPhotoData {
-  userId: string;
-  photoPath: string;
-}
-
-// Type for Login Response
-interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-  name: string;
-  email: string;
-}
-
-// Type for Biodata Submission
-interface UserBioData {
-  userId: string;
-  dateOfBirth: string; // Ensure it is a valid date string
-  gender: "MALE" | "FEMALE"; // Updated enum representation to include "OTHER" if applicable
-  phoneNumber: string;
-  address: string;
-  medicalHistory?: {
-    pastSurgeries: boolean;
-    currentMeds: boolean;
-    drugAllergies: boolean;
-  }; // Optional object to match the MedicalHistory model
-}
-
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export class AuthService {
   // Register a new user
-  async registerUser(userData: RegisterUserData): Promise<any> {
+  static async registerUser(userData: RegisterUserData): Promise<any> {
     const { name, email, password } = userData;
 
     // Check if the user already exists
@@ -75,7 +51,7 @@ export class AuthService {
     };
   }
 
-  async submitBiodata(userData: UserBioData): Promise<any> {
+  static async submitBiodata(userData: UserBioData): Promise<any> {
     const {
       userId,
       dateOfBirth,
@@ -114,7 +90,10 @@ export class AuthService {
   }
 
   // Login user and generate a JWT token
-  async loginUser(email: string, password: string): Promise<LoginResponse> {
+  static async loginUser(
+    email: string,
+    password: string
+  ): Promise<LoginResponse> {
     const user = await prisma.user.findFirst({
       where: { email },
       select: {
@@ -157,102 +136,91 @@ export class AuthService {
     };
   }
 
-  async updateUserPhoto(data: UserPhotoData): Promise<any> {
+  static async updateUserPhoto(data: UserPhotoData): Promise<any> {
     const { userId, photoPath } = data;
 
     const updatedUser = await prisma.user.update({
       where: { id: userId },
-      data: { photo: photoPath },
+      data: { profilePicture: photoPath },
     });
 
     return {
       id: updatedUser.id,
       name: updatedUser.name,
       email: updatedUser.email,
-      photo: updatedUser.photo,
+      photo: updatedUser.profilePicture,
     };
   }
 
-  async verifyGoogleToken(idToken: string): Promise<any> {
+  static async verifyGoogleToken(idToken: string): Promise<any> {
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID as string,
+      audience: process.env.GOOGLE_BACKEND_ID as string, // Specify the CLIENT_ID of the app that the token is intended for
     });
 
-    const payload = ticket.getPayload()!;
+    const payload = ticket.getPayload();
 
     if (!payload) {
-      throw new BadRequestException("Invalid ID token", ErrorCode.BADREQUEST);
+      throw new BadRequestException(
+        "Invalid Google token",
+        ErrorCode.BADREQUEST
+      );
     }
 
     const { sub: googleId, email, name, picture } = payload;
 
     // Check or create user in database
-    let user = await prisma.user.findUnique({ where: { googleId } });
+    let user = await prisma.user.upsert({
+      where: { email: email },
+      update: {
+        // Update existing user
+        googleId: googleId,
+        name: name || "",
+        profilePicture: picture || "",
+        verificationToken: generateVerificationToken(),
+      },
+      create: {
+        // Create new user
+        googleId: googleId,
+        email: email || "",
+        name: name || "",
+        profilePicture: picture || "",
+        verificationToken: generateVerificationToken(),
+      },
+    });
 
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          googleId,
-          email: email || "",
-          name: name || "",
-          photo: picture || "",
-        },
-      });
+    if (!user.emailVerified) {
+      try {
+        await AuthService.sendVerificationEmail(
+          user.email,
+          user.verificationToken!
+        );
+      } catch (error) {
+        // Handle email sending failure more gracefully
+        console.error("Error sending verification email:", error);
+        // Consider logging the error and potentially retrying the email later
+      }
     }
-
     // Generate a token (e.g., JWT or session token)
     const token = generateAuthToken(user);
 
     return { token, user };
   }
 
-  async verifyAppleToken(idToken: string): Promise<any> {
-    const decodedToken = await appleSigninAuth.verifyIdToken(idToken, {
-      audience: process.env.APP_BUNDLE_ID as string,
-      ignoreExpiration: false,
-    });
-
-    if (!decodedToken) {
-      throw new BadRequestException(
-        "Invalid Apple ID token",
-        ErrorCode.BADREQUEST
-      );
-    }
-
-    const { sub: appleId, email } = decodedToken;
-
-    // Check if user exists in the database
-    let appleUser = await prisma.user.findUnique({
-      where: { appleId },
-    });
-
-    // If the user doesn't exist, create a new user
-    if (!appleUser) {
-      appleUser = await prisma.user.create({
-        data: {
-          appleId,
-          email: email || "",
-          name: "",
-        },
-      });
-    }
-
-    // Generate a token (e.g., JWT or session token)
-    const token = generateAuthToken(appleUser);
-
-    return { token, appleUser };
-  }
-
-  async refreshAccessToken(refreshToken: string) {
-    if (!refreshToken) throw new BadRequestException("No token provided", ErrorCode.FORBIDDEN);
+  static async refreshAccessToken(refreshToken: string) {
+    if (!refreshToken)
+      throw new BadRequestException("No token provided", ErrorCode.FORBIDDEN);
 
     // Find Refresh Token in DB
     const storedToken = await prisma.refreshToken.findUnique({
       where: { token: refreshToken },
     });
 
-    if (!storedToken) throw new BadRequestException("Invalid refresh token", ErrorCode.FORBIDDEN);
+    if (!storedToken)
+      throw new BadRequestException(
+        "Invalid refresh token",
+        ErrorCode.FORBIDDEN
+      );
 
     try {
       // Verify token
@@ -269,12 +237,30 @@ export class AuthService {
       );
 
       return newAccessToken;
-
     } catch (error) {
       throw new BadRequestException(
         "Invalid or expired refresh token",
         ErrorCode.FORBIDDEN
       );
+    }
+  }
+
+  static async sendVerificationEmail(
+    email: string,
+    verificationToken: string
+  ): Promise<void> {
+    const verificationLink = `${process.env.APP_URL}/api/auth/verify-email?token=${verificationToken}`;
+    const html = `Click <a href="${verificationLink}">here</a> to verify your email address.`;
+
+    try {
+      await EmailService.sendEmail({
+        to: email,
+        subject: "Verify Your Email Address",
+        html: html,
+      });
+    } catch (error) {
+      console.error("Error sending verification email:", error);
+      throw new Error("Failed to send verification email");
     }
   }
 }
@@ -290,4 +276,3 @@ function generateRefreshToken(user: any) {
     expiresIn: "7d",
   });
 }
-

@@ -1,10 +1,13 @@
 // src/services/booking.service.ts
-import { Session, Profile, ConsultationType, TransactionType } from "@prisma/client";
+import { Session, Profile, TransactionType, AppointmentStatus } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
+import { createGoogleMeetEvent } from "../utils/verifyToken";
+import { BookingData } from "../models/consultation.model";
 
-export class BookingService {
+export class ConsultationService {
+  
   async createSession(
     userId: string,
     doctorId: string,
@@ -67,6 +70,38 @@ export class BookingService {
         ...data,
         userId,
       },
+    });
+  }
+
+  static async bookConsultation(data: BookingData) {
+    const { doctorId, doctorEmail, patientId, patientEmail, consultationType } = data;
+    
+    const startTime = new Date(); // Current time
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+    
+    // Generate Google Meet link
+    const googleMeetLink = await createGoogleMeetEvent(
+      doctorEmail,
+      patientEmail,
+      startTime,
+      endTime
+    );
+
+    return await prisma.consultation.create({
+      data: {
+        doctorId,
+        patientId,
+        consultationType,
+        consultationTime: startTime,
+        googleMeetLink,
+        status: AppointmentStatus.PENDING,
+      },
+    });
+  }
+
+  static async getConsultationById(consultationId: string) {
+    return await prisma.consultation.findUnique({
+      where: { id: consultationId },
     });
   }
 }

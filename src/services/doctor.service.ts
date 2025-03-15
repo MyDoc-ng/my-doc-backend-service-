@@ -1,4 +1,4 @@
-import { ConsultationType, Doctor, Prisma } from "@prisma/client";
+import { SessionType, Doctor, Prisma } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 
 interface FilterDoctor {
@@ -6,7 +6,7 @@ interface FilterDoctor {
   minRating?: number;
   location?: string;
   availability?: string;
-  consultationType?: ConsultationType;
+  consultationType?: SessionType;
 }
 
 interface AvailabilitySlot {
@@ -30,12 +30,19 @@ interface DoctorProfile {
 }
 
 export class DoctorService {
-  async getDoctors() {
-    const users = await prisma.user.findMany();
-    return users;
+
+  static async getAllDoctors() {
+    return await prisma.doctor.findMany();
   }
 
-  async createDoctors(data: DoctorProfile) {
+  static async getDoctorById(doctorId: string) {
+    return await prisma.doctor.findUnique({
+      where: { id: doctorId },
+    });
+  }
+
+
+  static async createDoctors(data: DoctorProfile) {
     const {
       userId,
       specialization,
@@ -61,7 +68,7 @@ export class DoctorService {
     return newDoctor;
   }
 
-  async getTopDoctors() {
+  static async getTopDoctors() {
     const doctors = await prisma.doctor.findMany({
       orderBy: { ratings: "desc" },
       take: 5,
@@ -70,7 +77,7 @@ export class DoctorService {
     return doctors;
   }
 
-  async findDoctors(filters: FilterDoctor): Promise<Doctor[]> {
+  static async findDoctors(filters: FilterDoctor): Promise<Doctor[]> {
     return prisma.doctor.findMany({
       where: {
         specialization: filters.specialization,
@@ -84,7 +91,7 @@ export class DoctorService {
     });
   }
 
-  async getDoctorAvailability(
+  static async getDoctorAvailability(
     doctorId: string
   ): Promise<Record<string, string[]>> {
     const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
