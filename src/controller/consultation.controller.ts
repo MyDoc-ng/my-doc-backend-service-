@@ -57,7 +57,7 @@ export class ConsultationController {
 
   async getDoctorAvailability(req: Request, res: Response, next: NextFunction) {    
     try {
-      const availability = await doctorService.getDoctorAvailability(req.params.doctorId);
+      const availability = await DoctorService.getDoctorAvailability(req.params.doctorId);
       res.json(availability);
     } catch (error) {
       next(error);
@@ -86,12 +86,23 @@ export class ConsultationController {
     }
   }
 
-  static async getConsultationById(req: Request, res: Response) {
+  static async getConsultationById(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       const consultation = await ConsultationService.getConsultationById(req.params.id);
       res.json(consultation);
     } catch (error) {
-      res.status(404).json({ message: "Consultation not found" });
+      next(error)
+      res.status(404).json({ message: "Consultations not found" });
+    }
+  }
+
+  static async getDoctorConsultations(req: Request, res: Response,next: NextFunction): Promise<any> {
+    try {
+      const doctorConsultations = await ConsultationService.getDoctorConsultation(req.params.doctorId);
+      res.status(200).json(doctorConsultations);
+    } catch (error) {
+      next(error)
+      res.status(404).json({ message: "Consultations not found" });
     }
   }
 }

@@ -12,10 +12,10 @@ const consultationController = new ConsultationController();
 // Route to initiate Google OAuth2 flow for doctor
 router.get("/auth/google/doctor/:doctorId", DoctorController.googleOAuth2);
 router.get("/auth/google/doctor/callback", DoctorController.oAuth2Callback);
-
-
 router.get("/doctors", [authenticate], DoctorController.index);
-router.get("/:id", [authenticate], DoctorController.show);
+
+router.get("doctors/:id", [authenticate], DoctorController.show);
+
 router.get("/doctors/top", [authenticate], DoctorController.topDoctors);
 router.get(
   "/doctors/general-practitioners",

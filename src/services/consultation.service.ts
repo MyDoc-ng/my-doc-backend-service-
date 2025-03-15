@@ -104,4 +104,13 @@ export class ConsultationService {
       where: { id: consultationId },
     });
   }
+  
+  static async getDoctorConsultation(doctorId: string) {
+    return await prisma.consultation.findMany({
+      where: { doctorId: doctorId },
+      include: {
+        patient: true, // Include patient details
+      },
+    });
+  }
 }
