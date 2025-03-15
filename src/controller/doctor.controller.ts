@@ -1,11 +1,13 @@
 import { NextFunction, Request, Response } from "express";
 import { DoctorService } from "../services/doctor.service";
+import bcrypt from 'bcrypt';
 import {
   handleOAuthCallback,
   initiateOAuth,
   saveTokensAndCalendarId,
 } from "../utils/oauthUtils";
 import { prisma } from "../prisma/prisma";
+import { DoctorSignupSchema } from "../schema/doctorSignupSchema";
 
 const doctorService = new DoctorService();
 
@@ -129,6 +131,18 @@ export class DoctorController {
     } catch (error) {
       console.error("Error during Google OAuth2 flow:", error);
       res.status(500).send("Error connecting to Google Calendar.");
+    }
+  }
+
+  static async store(req: Request, res: Response, next: NextFunction) {
+    try {
+      const doctor = await DoctorService.createDoctors(req.body);
+
+      res.status(201).json({ message: 'Doctor created successfully', doctor });
+    } catch (error) {
+      next(error)
+      // console.error('Error during doctor signup:', error);
+      // res.status(500).json({ message: 'Failed to create doctor' });
     }
   }
 }

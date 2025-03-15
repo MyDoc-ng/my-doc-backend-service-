@@ -84,7 +84,7 @@ model MedicalHistory {
 model Doctor {
   id                    String               @id @default(uuid())
   name                  String?
-  specialization        String?
+  email                 String               @unique
   experience            Int?
   ratings               Float?               @default(0)
   certifications        String?
@@ -97,7 +97,6 @@ model Doctor {
   availability          DoctorAvailability[]
   isOnline              Boolean              @default(false)
   lastActive            DateTime?
-  sessions              Session[]
   bio                   String?
   accessToken           String?
   refreshToken          String?
@@ -106,8 +105,8 @@ model Doctor {
   consultations         Consultation[]
   MedicalRecord         MedicalRecord[]
   chatMessages          ChatMessage[]        @relation("DoctorChats")
-  specialtyId           String
-  specialty             Specialty            @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+  specialtyId           String?
+  specialty             Specialty?           @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
   Payment               Payment[]
   googleCalendarId      String? // Doctor's Google Calendar ID
   googleRefreshToken    String? // Doctor's Google OAuth2 Refresh Token
@@ -186,21 +185,6 @@ model ChatMessage {
   timestamp   DateTime @default(now())
 
   @@map("chat_messages")
-}
-
-model Session {
-  id         String      @id @default(uuid())
-  type       SessionType
-  startTime  DateTime
-  endTime    DateTime?
-  userId     String
-  doctorId   String
-  profileId  String?
-  doctor     Doctor      @relation(fields: [doctorId], references: [id])
-  symptoms   String?
-  isReferral Boolean     @default(false)
-
-  @@map("sessions")
 }
 
 model Profile {

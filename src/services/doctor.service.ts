@@ -1,5 +1,7 @@
 import { SessionType, Doctor, Prisma } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
+import { NotFoundException } from "../exception/not-found";
+import { ErrorCode } from "../exception/base";
 
 interface FilterDoctor {
   specialization?: string;
@@ -20,14 +22,20 @@ interface Availability {
 }
 
 interface DoctorProfile {
-  userId: string;
-  specialization: string;
-  experienceYears: number;
+  name: string;
+  email: string;
+  experience: number;
+  location: string;
+  consultationTypes: SessionType[]; // Assuming consultation types are strings
+  consultationFees: number;
+  homeVisitCharge: number;
+  videoConsultationFee: number;
+  clinicConsultationFee: number;
   ratings: number;
   bio: string;
-  isOnline: boolean;
-  availability: Prisma.JsonValue[];
+  specialtyId: string;
 }
+
 
 export class DoctorService {
 
@@ -44,24 +52,48 @@ export class DoctorService {
 
   static async createDoctors(data: DoctorProfile) {
     const {
-      userId,
-      specialization,
-      experienceYears,
+      name,
+      email,
+      experience,
+      location,
+      consultationTypes,
+      consultationFees,
+      homeVisitCharge,
+      videoConsultationFee,
+      clinicConsultationFee,
       ratings,
       bio,
-      isOnline,
-      availability,
+      specialtyId,
     } = data;
+
+    const existingDoctor = await prisma.doctor.findFirst({
+      where: { email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        password: true,
+      },
+    });
+
+    if (existingDoctor) {
+      throw new Error('Doctor with this email already exists');
+    }
 
     const newDoctor = await prisma.doctor.create({
       data: {
-        userId,
-        specialization,
-        experienceYears, // Years of experience
-        ratings, // Example rating
+        name,
+        email,
+        consultationTypes,
+        location,
+        consultationFees,
+        homeVisitCharge,
+        videoConsultationFee,
+        clinicConsultationFee,
+        experience,
+        ratings,
         bio,
-        isOnline, // Profile picture URL
-        availability,
+        specialtyId,
       },
     });
 
@@ -93,8 +125,20 @@ export class DoctorService {
 
   static async getDoctorAvailability(
     doctorId: string
-  ): Promise<Record<string, string[]>> {
-    const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
-    return (doctor?.availability as Record<string, string[]>) || {};
+  ): Promise<Availability[]> {
+    const doctor = await prisma.doctor.findUnique({ 
+      where: { id: doctorId },
+      select: { availability: true }
+    });
+    
+    if (!doctor) {
+      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+    }
+
+    try {
+      return JSON.parse(doctor.availability as string) as Availability[];
+    } catch {
+      return [];
+    }
   }
 }

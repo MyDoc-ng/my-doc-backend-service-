@@ -2,6 +2,8 @@ import express, { Router } from "express";
 import authenticate from "../middleware/authMiddleware";
 import { DoctorController } from "../controller/doctor.controller";
 import { ConsultationController } from "../controller/consultation.controller";
+import { validateData } from "../middleware/validationMiddleware";
+import { DoctorSignupSchema } from "../schema/doctorSignupSchema";
 
 const router: Router = express.Router();
 
@@ -26,5 +28,7 @@ router.get(
   [authenticate],
   consultationController.getDoctorAvailability
 );
+
+router.post('/signup/doctor', validateData(DoctorSignupSchema), DoctorController.store);
 
 export default router;

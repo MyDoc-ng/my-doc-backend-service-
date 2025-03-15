@@ -100,7 +100,11 @@ export class AuthController {
     }
   }
 
-  static async refreshToken(req: Request, res: Response, next: NextFunction): Promise<any> {
+  static async refreshToken(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
     try {
       const { refreshToken } = req.body;
 
@@ -142,8 +146,7 @@ export class AuthController {
           calendarId: calendarId,
         });
         res.send(
-          `${
-            entityType.charAt(0).toUpperCase() + entityType.slice(1)
+          `${entityType.charAt(0).toUpperCase() + entityType.slice(1)
           } Google Calendar connected successfully!`
         );
       } else {
