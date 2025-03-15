@@ -1,20 +1,21 @@
 export class BaseHttpException extends Error {
   message: string;
-  errorCode: any;
+  errorCode: any; 
   statusCode: number;
-  errors: ErrorCode;
+  errors: any;
 
   constructor(
     message: string,
-    errorCode: ErrorCode,
+    errorCode: any, 
     statusCode: number,
-    error: any
+    errors: any 
   ) {
     super(message);
     this.message = message;
     this.errorCode = errorCode;
     this.statusCode = statusCode;
-    this.errors = error;
+    this.errors = errors;
+    Object.setPrototypeOf(this, new.target.prototype); 
   }
 }
 
@@ -26,5 +27,5 @@ export enum ErrorCode {
   FORBIDDEN = 403,
   CONFLICT = 409,
   OK = 200,
-  CREATED = 201,
+  CREATED = 200,
 }
