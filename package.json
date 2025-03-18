@@ -22,12 +22,16 @@
     "google-auth-library": "^9.15.1",
     "googleapis": "^146.0.0",
     "http-status-codes": "^2.3.0",
+    "inversify": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "reflect-metadata": "^0.2.2",
     "uuid": "^11.1.0",
+    "winston": "^3.17.0",
+    "winston-daily-rotate-file": "^5.0.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {

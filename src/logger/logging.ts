@@ -1,6 +1,7 @@
 import { injectable } from 'inversify'; // For dependency injection
 import winston, { format } from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
+import * as path from 'path';
 
 export type LogMessage = string;
 
@@ -22,23 +23,57 @@ export class Logging {
         this._logger = this._initializeWinston();
     }
 
+    private _getCallerInfo() {
+        const stackTrace = Error.captureStackTrace;
+        const prepareStackTrace = Error.prepareStackTrace;
+        
+        Error.prepareStackTrace = (_, stack) => stack;
+        const stack = new Error().stack as unknown as NodeJS.CallSite[];
+        Error.prepareStackTrace = prepareStackTrace;
+
+        // Get the caller frame (index 3 skips internal calls)
+        const caller = stack[3];
+
+        if (caller) {
+            const fileName = caller.getFileName() || '';
+            const lineNumber = caller.getLineNumber() || '';
+            const columnNumber = caller.getColumnNumber() || '';
+            
+            // Convert absolute path to relative path
+            const relativePath = path.relative(process.cwd(), fileName);
+            
+            return {
+                file: relativePath,
+                line: lineNumber,
+                column: columnNumber,
+                function: caller.getFunctionName() || '<anonymous>'
+            };
+        }
+        
+        return null;
+    }
+
     public logInfo(msg: LogMessage, context?: LogContext) {
-        this._log(msg, LogLevel.INFO, context);
+        const caller = this._getCallerInfo();
+        this._log(msg, LogLevel.INFO, { ...context, caller });
     }
     public logWarn(msg: LogMessage, context?: LogContext) {
-        this._log(msg, LogLevel.WARN, context);
+        const caller = this._getCallerInfo();
+        this._log(msg, LogLevel.WARN, { ...context, caller });
     }
     public logError(msg: LogMessage, context?: LogContext) {
-        this._log(msg, LogLevel.ERROR, context);
+        const caller = this._getCallerInfo();
+        this._log(msg, LogLevel.ERROR, { ...context, caller });
     }
     public logDebug(msg: LogMessage, context?: LogContext) {
-        if (process.env.APP_ENV !== 'production') {
-            this._log(msg, LogLevel.DEBUG, context); // Don't log debug in production
+        if (process.env.NODE_ENV !== 'production') {
+            const caller = this._getCallerInfo();
+            this._log(msg, LogLevel.DEBUG, { ...context, caller });
         }
     }
 
     private _log(msg: LogMessage, level: LogLevel, context?: LogContext) {
-        this._logger.log(level, msg, { context: context });
+        this._logger.log(level, msg, { context });
     }
 
     private _initializeWinston() {
@@ -55,7 +90,7 @@ export class Logging {
             }),
         ];
 
-        if (process.env.APP_ENV === 'production') {
+        if (process.env.NODE_ENV === 'production') {
             transports.push(this._getFileTransport()); // Also log file in production
         }
 
@@ -65,12 +100,23 @@ export class Logging {
     private static _getFormatForConsole() {
         return format.combine(
             format.timestamp(),
-            format.printf(
-                info =>
-                    `[${info.timestamp}] [${info.level.toUpperCase()}]: ${info.message
-                    } [CONTEXT] -> ${info.context ? '\n' + JSON.stringify(info.context, null, 2) : '{}' // Including the context
-                    }`
-            ),
+            format.printf(info => {
+                const caller = info.context?.caller;
+                
+                const callerInfo = caller 
+                    ? `[${caller.file}:${caller.line}]` 
+                    : '';
+                
+                return `[${info.timestamp}] ${callerInfo} [${info.level.toUpperCase()}]: ${
+                    info.message
+                } [CONTEXT] -> ${
+                    info.context ? '\n' + JSON.stringify(
+                        { ...info.context, caller: undefined }, 
+                        null, 
+                        2
+                    ) : '{}'
+                }`;
+            }),
             format.colorize({ all: true })
         );
     }

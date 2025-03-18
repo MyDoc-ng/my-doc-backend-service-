@@ -1,10 +1,9 @@
-// src/services/booking.service.ts
-import { Session, Profile, TransactionType, AppointmentStatus } from "@prisma/client";
+import { Profile, TransactionType, AppointmentStatus } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
 import { createGoogleMeetEvent } from "../utils/generate_verify_token";
-import { BookingData } from "../models/consultation.model";
+import { GOPDBookingData } from "../models/consultation.model";
 
 export class ConsultationService {
   
@@ -73,30 +72,48 @@ export class ConsultationService {
     });
   }
 
-  static async bookConsultation(data: BookingData) {
-    const { doctorId, doctorEmail, patientId, patientEmail, consultationType } = data;
+  static async bookGOPDConsultation(data: GOPDBookingData) {
+    const { doctorId, patientId, consultationType } = data;
     
+    // Check if doctor exists
+    const doctor = await prisma.doctor.findUnique({
+      where: { id: doctorId },
+    });
+
+    if (!doctor) {
+      throw new BadRequestException(
+        'Doctor not found',
+        ErrorCode.BADREQUEST
+      );
+    }
+
+    // Check if patient exists
+    const patient = await prisma.user.findUnique({
+      where: { id: patientId },
+    });
+
+    if (!patient) {
+      throw new BadRequestException(
+        'Patient not found',
+        ErrorCode.BADREQUEST
+      );
+    }
+
     const startTime = new Date(); // Current time
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
-    
-    // Generate Google Meet link
-    const googleMeetLink = await createGoogleMeetEvent(
-      doctorEmail,
-      patientEmail,
-      startTime,
-      endTime
-    );
 
-    return await prisma.consultation.create({
+    // Create appointment in database
+    const appointment = await prisma.consultation.create({
       data: {
-        doctorId,
-        patientId,
-        consultationType,
-        consultationTime: startTime,
-        googleMeetLink,
-        status: AppointmentStatus.PENDING,
+        patientId: patientId,
+        doctorId: doctorId,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        consultationType: consultationType
       },
     });
+
+    return appointment;
   }
 
   static async getConsultationById(consultationId: string) {

@@ -1,14 +1,12 @@
 import express, { Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
-import authRoutes from "./routes/auth.routes";
-import userRoutes from "./routes/user.routes";
-import doctorRoutes from "./routes/doctor.routes";
-import consultationRoutes from "./routes/consultation.routes";
-import searchRoutes from "./routes/search.routes";
+import routes from './routes';
 import { errorMiddleware } from "./middleware/errorMiddleware";
 import { NotFoundException } from "./exception/not-found";
 import { ErrorCode } from "./exception/base";
 import responseFormatter from "./middleware/responseFormatter";
+import logger from "./logger";
+
 
 const app = express();
 
@@ -28,12 +26,8 @@ app.use(responseFormatter);
 //   responseFormatter(req, res, next);
 // });
 
-// Register routes
-app.use("/api/auth/", authRoutes);
-app.use("/api/", userRoutes);
-app.use("/api/", doctorRoutes);
-app.use("/api/", consultationRoutes);
-app.use("/api/", searchRoutes);
+// Mount all routes
+app.use(routes);
 
 // Handle non-existing routes
 app.use((_req: Request, res: Response, next: NextFunction) => {
@@ -46,5 +40,10 @@ app.use(errorMiddleware);
 
 // Initialize the server
 app.listen(PORT, () => {
-  console.log(`[server]: Server is running at http://localhost:${PORT}`);
+  logger.info(`Server is running at http://localhost:${PORT}`, { 
+    port: PORT,
+    environment: process.env.NODE_ENV 
+  });
 });
+
+logger.info('Application routes mounted successfully');

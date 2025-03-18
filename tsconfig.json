@@ -12,9 +12,15 @@
       "resolveJsonModule": true,
       "moduleResolution": "node",
       "isolatedModules": true,
-      "incremental": true
+      "incremental": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true
     },
     "include": ["**/*.ts"],
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules"],
+    "typeRoots": [
+      "@types",
+      "./node_modules/@types",
+    ] 
   }
   

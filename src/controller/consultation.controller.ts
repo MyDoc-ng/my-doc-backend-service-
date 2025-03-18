@@ -76,9 +76,9 @@ export class ConsultationController {
     }
   }
 
-  static async bookConsultation(req: Request, res: Response, next: NextFunction) {
+  static async bookGOPDConsultation(req: Request, res: Response, next: NextFunction) {
     try {
-      const consultation = await ConsultationService.bookConsultation(req.body);
+      const consultation = await ConsultationService.bookGOPDConsultation(req.body);
       res.json(consultation);
     } catch (error :any) {
       next(error)
@@ -103,6 +103,69 @@ export class ConsultationController {
     } catch (error) {
       next(error)
       res.status(404).json({ message: "Consultations not found" });
+    }
+  }
+
+  static async approveAppointment(req: Request, res: Response,next: NextFunction): Promise<any> {
+    try {
+      const appointmentId = parseInt(req.params.id);
+      const appointment = await prisma.appointment.findUnique({
+        where: { id: appointmentId },
+        include: { patient: true, doctor: true },
+      });
+  
+      if (!appointment) {
+        return res.status(404).json({ message: 'Appointment not found' });
+      }
+  
+      if (appointment.status !== 'PENDING') {
+        return res.status(400).json({ message: 'Appointment is not in pending state' });
+      }
+  
+      // Get doctor's calendar details
+      const { calendarId, oauth2Client } = await getDoctorCalendarDetails(appointment.doctorId);
+  
+      // Create event in Google Calendar
+      const event = {
+        summary: `Appointment with ${appointment.patient.name}`,
+        description: 'Doctor Appointment',
+        start: {
+          dateTime: new Date(appointment.startTime).toISOString(),
+          timeZone: 'UTC',
+        },
+        end: {
+          dateTime: new Date(appointment.endTime).toISOString(),
+          timeZone: 'UTC',
+        },
+        attendees: [{ email: appointment.patient.email }],
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: 'email', minutes: 24 * 60 },
+            { method: 'popup', minutes: 10 },
+          ],
+        },
+      };
+  
+      const calendarResponse = await calendar.events.insert({
+        calendarId: calendarId,
+        auth: oauth2Client,
+        requestBody: event,
+      });
+  
+      // Update appointment in database with Google Event ID and status
+      const updatedAppointment = await prisma.appointment.update({
+        where: { id: appointmentId },
+        data: {
+          status: 'APPROVED',
+          googleEventId: calendarResponse.data.id,
+        },
+      });
+  
+      res.json({ message: 'Appointment approved and event created in Google Calendar', appointment: updatedAppointment });
+    } catch (error) {
+      console.error("Error approving appointment:", error);
+      res.status(500).json({ message: 'Failed to approve appointment', error: error });
     }
   }
 }

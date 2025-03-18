@@ -1,39 +1,103 @@
 import { NextFunction, Request, Response } from "express";
 import { DoctorService } from "../services/doctor.service";
-import bcrypt from 'bcrypt';
 import {
+  googleConfig,
   handleOAuthCallback,
   initiateOAuth,
   saveTokensAndCalendarId,
 } from "../utils/oauthUtils";
 import { prisma } from "../prisma/prisma";
-import { DoctorSignupSchema } from "../schema/doctorSignupSchema";
+import logger from "../logger";
 
 const doctorService = new DoctorService();
-
-// Google Calendar API setup (move to a separate module later)
-const googleConfig = {
-  clientId: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  redirect: process.env.GOOGLE_REDIRECT_URI, // Base URI, specific to doctor callback
-};
 
 export class DoctorController {
   static async index(req: Request, res: Response, next: NextFunction) {
     try {
+      logger.info('Fetching all doctors');
       const doctors = await DoctorService.getAllDoctors();
+      logger.debug('Doctors fetched successfully', { count: doctors.length });
       res.json(doctors);
     } catch (error: any) {
+      logger.error('Error fetching doctors', { 
+        error: error.message,
+        stack: error.stack 
+      });
       next(error);
-      res.status(500).json({ message: error.message });
     }
   }
 
-  async createDoctor(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  static async show(req: Request, res: Response, next: NextFunction) {
+    try {
+      const { id } = req.params;
+      logger.info('Fetching doctor by ID', { doctorId: id });
+      
+      const doctor = await DoctorService.getDoctorById(id);
+      logger.debug('Doctor fetched successfully', { doctorId: id });
+      
+      res.json(doctor);
+    } catch (error: any) {
+      logger.error('Error fetching doctor by ID', {
+        doctorId: req.params.id,
+        error: error.message,
+        stack: error.stack
+      });
+      next(error);
+    }
+  }
+
+  static async generalPractitioners(req: Request, res: Response, next: NextFunction) {
+    try {
+      logger.info('Fetching general practitioners');
+      const doctors = await DoctorService.getGeneralPractitioners();
+      logger.debug('General practitioners fetched successfully', { count: doctors.length });
+      
+      res.json(doctors);
+    } catch (error: any) {
+      logger.error('Error fetching general practitioners', {
+        error: error.message,
+        stack: error.stack
+      });
+      next(error);
+    }
+  }
+
+  static async topDoctors(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      logger.info('Fetching top doctors');
+      const doctors = await doctorService.getTopDoctors();
+      logger.debug('Top doctors fetched successfully', { count: doctors.length });
+
+      res.json(doctors);
+    } catch (error: any) {
+      logger.error('Error fetching top doctors', {
+        error: error.message,
+        stack: error.stack
+      });
+      next(error);
+    }
+  }
+
+  static async store(req: Request, res: Response, next: NextFunction) {
+    try {
+      logger.info('Creating new doctor', { 
+        userData: { ...req.body, password: undefined } // Log user data without sensitive information
+      });
+      
+      const doctor = await DoctorService.createDoctors(req.body);
+      logger.debug('Doctor created successfully', { doctorId: doctor.id });
+
+      res.status(201).json({ message: 'Doctor created successfully', doctor });
+    } catch (error: any) {
+      logger.error('Error creating doctor', {
+        error: error.message,
+        stack: error.stack
+      });
+      next(error);
+    }
+  }
+
+  async createDoctor(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const {
         userId,
@@ -45,6 +109,12 @@ export class DoctorController {
         availability,
       } = req.body;
 
+      logger.info('Creating new doctor', { 
+        userId, 
+        specialization,
+        experienceYears 
+      });
+      
       const doctor = await doctorService.createDoctors({
         userId,
         specialization,
@@ -55,94 +125,83 @@ export class DoctorController {
         availability,
       });
 
+      logger.debug('Doctor created successfully', { 
+        doctorId: doctor.id,
+        userId: doctor.userId 
+      });
+      
       res.json(doctor);
     } catch (error: any) {
+      logger.error('Error creating doctor', {
+        userId: req.body.userId,
+        error: error.message,
+        stack: error.stack
+      });
       next(error);
     }
   }
 
-  static async topDoctors(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const doctors = await doctorService.getTopDoctors();
+  static async googleOAuth2(req: Request, res: Response, next: NextFunction) {
+    const doctorRedirectUri = `${googleConfig.redirect}`;
+    const doctorId = req.params.doctorId;
+    const scopes = ["https://www.googleapis.com/auth/calendar"];
 
-      res.json(doctors);
-    } catch (error: any) {
-      next(error);
-    }
-  }
-
-  static async show(req: Request, res: Response) {
     try {
-      const doctor = await DoctorService.getDoctorById(req.params.id);
-      res.json(doctor);
-    } catch (error) {
-      res.status(404).json({ message: "Doctor not found" });
-    }
-  }
+      logger.info('Initiating Google OAuth2 flow', { 
+        doctorId,
+        redirectUri: doctorRedirectUri 
+      });
 
-  static async generalPractitioners(req: Request, res: Response) {
-    try {
-      const doctor = await DoctorService.getDoctorById(req.params.id);
-      res.json(doctor);
-    } catch (error) {
-      res.status(404).json({ message: "Doctor not found" });
-    }
-  }
-
-  static async googleOAuth2(req: Request, res: Response) {
-    const doctorRedirectUri = `${googleConfig.redirect}/doctor/callback`;
-    const doctorId = parseInt(req.params.doctorId);
-    const scopes = ["https://www.googleapis.com/auth/calendar"]; // Define the necessary scopes
-    try {
       const authUrl = await initiateOAuth({
-        doctorId: doctorId,
-        scopes: scopes,
-        prisma: prisma,
+        doctorId,
+        scopes,
+        prisma,
         redirectUri: doctorRedirectUri,
       });
-      res.redirect(authUrl);
-    } catch (error) {
-      console.error("Error initiating OAuth:", error);
-      res.status(500).send("Error initiating OAuth flow.");
+
+      logger.debug('OAuth2 URL generated successfully', { doctorId });
+      res.json({ authUrl });
+    } catch (error: any) {
+      logger.error('Error initiating OAuth', { 
+        doctorId,
+        error: error.message,
+        stack: error.stack 
+      });
+      next(error);
     }
   }
 
-  static async oAuth2Callback(req: Request, res: Response): Promise<any> {
+  static async oAuth2Callback(req: Request, res: Response, next: NextFunction): Promise<any> {
     const code = req.query.code as string;
     const state = req.query.state as string;
+    const doctorId = state;
 
     try {
+      logger.info('Processing OAuth2 callback', { doctorId });
+
       const { tokens, calendarId } = await handleOAuthCallback(code);
-
-      const doctorId = parseInt(state);
-
-      await saveTokensAndCalendarId({
-        doctorId: doctorId,
-        tokens: tokens,
-        calendarId: calendarId,
-        prisma: prisma,
+      logger.debug('OAuth2 tokens received', { 
+        doctorId,
+        hasTokens: !!tokens,
+        hasCalendarId: !!calendarId 
       });
 
-      res.send("Doctor Google Calendar connected successfully!");
-    } catch (error) {
-      console.error("Error during Google OAuth2 flow:", error);
-      res.status(500).send("Error connecting to Google Calendar.");
-    }
-  }
+      await saveTokensAndCalendarId({
+        doctorId,
+        tokens,
+        calendarId,
+        prisma,
+      });
 
-  static async store(req: Request, res: Response, next: NextFunction) {
-    try {
-      const doctor = await DoctorService.createDoctors(req.body);
-
-      res.status(201).json({ message: 'Doctor created successfully', doctor });
-    } catch (error) {
-      next(error)
-      // console.error('Error during doctor signup:', error);
-      // res.status(500).json({ message: 'Failed to create doctor' });
+      logger.info('Doctor Google Calendar connected successfully', { doctorId });
+      res.json({ message: "Doctor Google Calendar connected successfully!" });
+    } catch (error: any) {
+      logger.error('Error during OAuth2 callback', {
+        doctorId,
+        error: error.message,
+        stack: error.stack
+      });
+      next(error);
     }
   }
 }

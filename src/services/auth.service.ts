@@ -160,7 +160,7 @@ export class AuthService {
 
     const payload = ticket.getPayload();
 
-    if (!payload) {
+    if (!payload || Date.now() / 1000 > payload.exp) {
       throw new BadRequestException(
         "Invalid Google token",
         ErrorCode.BADREQUEST
@@ -194,6 +194,7 @@ export class AuthService {
         );
       } catch (error) {
         console.error("Error sending verification email:", error);
+        throw error
       }
     }
 

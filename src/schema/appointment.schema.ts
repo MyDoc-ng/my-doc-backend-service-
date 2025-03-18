@@ -1,21 +1,11 @@
 import { z } from "zod";
 
+// Create a new appointment
 export const appointmentSchema = z.object({
-  type: z.enum(["Urgent","NonUrgent"]), // Only allows "Urgent" or "NonUrgent"
-  patientName: z
-    .string()
-    .min(1, "Patient name cannot be empty"),
-  patientEmail: z
-    .string()
-    .email("Invalid email address"),
-  symptoms: z
-    .array(z.string().min(1, "Symptom description cannot be empty"))
-    .nonempty("At least one symptom is required"),
-  consultationType: z.enum(["Messaging", "AudioCall", "VideoCall"]), // Only allows "in-person" or "virtual"
-  doctorId: z
-    .string()
-    .uuid("Invalid Doctor ID"),
-  date: z.string(),
-  time: z.string(),
+  patientId: z.string(),
+  doctorId: z.string(),
+  consultationType: z.enum(["CHAT", "AUDIO", "VIDEO", "CLINIC", "HOME"])
+  // startTime: z.string(),
+  // endTime: z.string(),
 });
 

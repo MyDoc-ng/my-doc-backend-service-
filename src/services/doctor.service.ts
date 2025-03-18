@@ -2,6 +2,8 @@ import { SessionType, Doctor, Prisma } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 import { NotFoundException } from "../exception/not-found";
 import { ErrorCode } from "../exception/base";
+import { google } from "googleapis";
+import { googleConfig, oauth2Client } from "../utils/oauthUtils";
 
 interface FilterDoctor {
   specialization?: string;
@@ -35,7 +37,6 @@ interface DoctorProfile {
   bio: string;
   specialtyId: string;
 }
-
 
 export class DoctorService {
 
@@ -126,11 +127,11 @@ export class DoctorService {
   static async getDoctorAvailability(
     doctorId: string
   ): Promise<Availability[]> {
-    const doctor = await prisma.doctor.findUnique({ 
+    const doctor = await prisma.doctor.findUnique({
       where: { id: doctorId },
       select: { availability: true }
     });
-    
+
     if (!doctor) {
       throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
     }
@@ -140,5 +141,22 @@ export class DoctorService {
     } catch {
       return [];
     }
+  }
+
+  // Utility function to get doctor's calendar details
+  static async getDoctorCalendarDetails(doctorId: string) {
+    const doctor = await prisma.doctor.findUnique({
+      where: { id: doctorId },
+    });
+
+    if (!doctor || !doctor.googleRefreshToken || !doctor.googleCalendarId) {
+      throw new Error('Doctor not found or Google Calendar not connected.');
+    }
+
+    oauth2Client.setCredentials({
+      refresh_token: doctor.googleRefreshToken,
+    });
+
+    return { calendarId: doctor.googleCalendarId, oauth2Client };
   }
 }
