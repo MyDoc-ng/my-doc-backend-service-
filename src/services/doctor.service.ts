@@ -13,16 +13,6 @@ interface FilterDoctor {
   consultationType?: SessionType;
 }
 
-interface AvailabilitySlot {
-  start: string;
-  end: string;
-}
-
-interface Availability {
-  day: string;
-  slots: AvailabilitySlot[];
-}
-
 interface DoctorProfile {
   name: string;
   email: string;
@@ -113,20 +103,17 @@ export class DoctorService {
   static async findDoctors(filters: FilterDoctor): Promise<Doctor[]> {
     return prisma.doctor.findMany({
       where: {
-        specialization: filters.specialization,
+        specialtyId: filters.specialization,
         ratings: { gte: filters.minRating },
         location: { contains: filters.location },
         consultationTypes: { has: filters.consultationType },
-        availability: {
-          equals: filters.availability,
-        },
       },
     });
   }
 
   static async getDoctorAvailability(
     doctorId: string
-  ): Promise<Availability[]> {
+  ): Promise<any> {
     const doctor = await prisma.doctor.findUnique({
       where: { id: doctorId },
       select: { availability: true }
@@ -137,7 +124,7 @@ export class DoctorService {
     }
 
     try {
-      return JSON.parse(doctor.availability as string) as Availability[];
+      // return JSON.parse(doctor.availability as string) ;
     } catch {
       return [];
     }
@@ -158,5 +145,9 @@ export class DoctorService {
     });
 
     return { calendarId: doctor.googleCalendarId, oauth2Client };
+  }
+
+  static async getGeneralPractitioners(){
+    return [];
   }
 }

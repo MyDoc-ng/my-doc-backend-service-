@@ -19,19 +19,19 @@ export class AppointmentController {
     }
   }
 
-  async createAppointment(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
-    try {
-      const appointments = await appointmentService.createAppointment(req.body);
+  // async createAppointment(
+  //   req: Request,
+  //   res: Response,
+  //   next: NextFunction
+  // ): Promise<void> {
+  //   try {
+  //     const appointments = await AppointmentService.createAppointment(req.body);
 
-      res.json(appointments);
-    } catch (error: any) {
-      next(error);
-    }
-  }
+  //     res.json(appointments);
+  //   } catch (error: any) {
+  //     next(error);
+  //   }
+  // }
 
   async getUpcomingAppointment(
     req: Request,

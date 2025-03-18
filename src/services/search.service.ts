@@ -7,10 +7,7 @@ export class SearchService {
       where: {
         name: {
           search: keyword,
-        },
-        specialty: { 
-            search: keyword
-         },
+        }
       },
     });
       // Dummy drugs data (Replace with a real drug model if you have one)

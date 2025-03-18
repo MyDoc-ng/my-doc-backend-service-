@@ -5,7 +5,7 @@ const searchService = new SearchService();
 
 
 export class SearchController{
-    async search(req: Request, res: Response, next: NextFunction): Promise<void> {
+    static async search(req: Request, res: Response, next: NextFunction): Promise<void> {
 
         const query = req.query.keyword as string;
         

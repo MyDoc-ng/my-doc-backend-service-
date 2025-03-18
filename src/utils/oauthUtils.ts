@@ -14,6 +14,8 @@ export const oauth2Client = new google.auth.OAuth2(
   googleConfig.redirect
 );
 
+export const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
 interface OAuthParams {
   doctorId: string;
   scopes: string[];
@@ -68,7 +70,6 @@ export async function handleOAuthCallback(code: string): Promise<TokenResult> {
     oauth2Client.setCredentials(tokens);
     logger.debug('OAuth tokens received and credentials set');
 
-    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
     
     logger.debug('Fetching calendar list');
     const calendarListResponse = await calendar.calendarList.list({
@@ -81,7 +82,7 @@ export async function handleOAuthCallback(code: string): Promise<TokenResult> {
       throw new Error("No calendars found in your Google account.");
     }
 
-    const calendarId = calendars[0].id;
+    const calendarId = calendars[0].id as string;
     logger.info('Successfully retrieved calendar ID', { calendarId });
     
     return { tokens, calendarId };

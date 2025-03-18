@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import logger from "../logger";
+import { DoctorService } from "../services/doctor.service";
 
 export class AdminController {
     static async getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {

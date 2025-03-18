@@ -1,11 +1,10 @@
 import express, { Router } from 'express';
 import { SearchController } from '../controller/search.controller';
-import authenticate from '../middleware/authMiddleware';
+import { authenticateUser } from '../middleware/authMiddleware';
 
 const router: Router = express.Router();
-const searchController = new SearchController();
 
 
-router.get('/search', authenticate, searchController.search);
+router.get('/search', authenticateUser, SearchController.search);
 
 export default router;

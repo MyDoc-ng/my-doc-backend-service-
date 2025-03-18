@@ -101,6 +101,7 @@ export class Logging {
         return format.combine(
             format.timestamp(),
             format.printf(info => {
+                //@ts-ignore
                 const caller = info.context?.caller;
                 
                 const callerInfo = caller 

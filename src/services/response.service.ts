@@ -24,7 +24,7 @@ export const responseService = {
         notFound: 404,
         internalServerError: 500,
         serviceUnavailable: 503,
-    } as const,
+    } ,
 
     success<T>(message: string, data: T): SuccessResponse<T> {
         return {

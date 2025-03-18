@@ -16,8 +16,8 @@ export function configureNodemailer(): Transporter {
     // Production (SMTP Example)
     console.log("Using SMTP for email");
     return nodemailer.createTransport({
-      service: process.env.MAIL_MAILER,
-      port: process.env.MAIL_PORT,
+      host: process.env.MAIL_HOST,
+      port: parseInt(process.env.MAIL_PORT || "465", 10),
       secure: process.env.NODE_ENV == "production" ? true : false,
       auth: {
         user: process.env.MAIL_USERNAME,

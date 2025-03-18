@@ -65,7 +65,7 @@ export class DoctorController {
   static async topDoctors(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       logger.info('Fetching top doctors');
-      const doctors = await doctorService.getTopDoctors();
+      const doctors = await DoctorService.getTopDoctors();
       logger.debug('Top doctors fetched successfully', { count: doctors.length });
 
       res.json(doctors);
@@ -97,49 +97,47 @@ export class DoctorController {
     }
   }
 
-  async createDoctor(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const {
-        userId,
-        specialization,
-        experienceYears,
-        ratings,
-        bio,
-        isOnline,
-        availability,
-      } = req.body;
+  // async createDoctor(req: Request, res: Response, next: NextFunction): Promise<void> {
+  //   try {
+  //     const {
+  //       userId,
+  //       specialization,
+  //       experienceYears,
+  //       ratings,
+  //       bio,
+  //       isOnline,
+  //       availability,
+  //     } = req.body;
 
-      logger.info('Creating new doctor', { 
-        userId, 
-        specialization,
-        experienceYears 
-      });
+  //     logger.info('Creating new doctor', { 
+  //       userId, 
+  //       specialization,
+  //       experienceYears 
+  //     });
       
-      const doctor = await doctorService.createDoctors({
-        userId,
-        specialization,
-        experienceYears,
-        ratings,
-        bio,
-        isOnline,
-        availability,
-      });
+  //     const doctor = await DoctorService.createDoctors({
+  //       experience,
+  //       ratings,
+  //       bio,
+  //       isOnline,
+  //       availability,
+  //     });
 
-      logger.debug('Doctor created successfully', { 
-        doctorId: doctor.id,
-        userId: doctor.userId 
-      });
+  //     logger.debug('Doctor created successfully', { 
+  //       doctorId: doctor.id,
+  //       userId: doctor.userId 
+  //     });
       
-      res.json(doctor);
-    } catch (error: any) {
-      logger.error('Error creating doctor', {
-        userId: req.body.userId,
-        error: error.message,
-        stack: error.stack
-      });
-      next(error);
-    }
-  }
+  //     res.json(doctor);
+  //   } catch (error: any) {
+  //     logger.error('Error creating doctor', {
+  //       userId: req.body.userId,
+  //       error: error.message,
+  //       stack: error.stack
+  //     });
+  //     next(error);
+  //   }
+  // }
 
   static async googleOAuth2(req: Request, res: Response, next: NextFunction) {
     const doctorRedirectUri = `${googleConfig.redirect}`;

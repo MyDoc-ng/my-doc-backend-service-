@@ -70,7 +70,7 @@ export class AuthController {
       const userId = req.body.userId;
       const photoPath = req.file.path;
 
-      const updatedUser = await authService.updateUserPhoto({
+      const updatedUser = await AuthService.updateUserPhoto({
         photoPath,
         userId,
       });
@@ -128,35 +128,35 @@ export class AuthController {
     res.json({ message: "Logged out successfully" });
   }
 
-  static async oAuth2Callback(req: Request, res: Response): Promise<any> {
-    const code = req.query.code as string;
-    const state = req.query.state as string;
+  // static async oAuth2Callback(req: Request, res: Response): Promise<any> {
+  //   const code = req.query.code as string;
+  //   const state = req.query.state as string;
 
-    try {
-      const { tokens, calendarId } = await handleOAuthCallback(code);
+  //   try {
+  //     const { tokens, calendarId } = await handleOAuthCallback(code);
 
-      const [entityType, entityIdStr] = state.split("_");
-      const entityId = parseInt(entityIdStr);
+  //     const [entityType, entityIdStr] = state.split("_");
+  //     const entityId = parseInt(entityIdStr);
 
-      if (entityType === "doctor" || entityType === "user") {
-        await saveTokensAndCalendarId({
-          entityType: entityType,
-          entityId: entityId,
-          tokens: tokens,
-          calendarId: calendarId,
-        });
-        res.send(
-          `${entityType.charAt(0).toUpperCase() + entityType.slice(1)
-          } Google Calendar connected successfully!`
-        );
-      } else {
-        return res.status(400).send("Invalid state.");
-      }
-    } catch (error) {
-      console.error("Error during Google OAuth2 flow:", error);
-      res.status(500).send("Error connecting to Google Calendar.");
-    }
-  }
+  //     if (entityType === "doctor" || entityType === "user") {
+  //       await saveTokensAndCalendarId({
+  //         entityType: entityType,
+  //         entityId: entityId,
+  //         tokens: tokens,
+  //         calendarId: calendarId,
+  //       });
+  //       res.send(
+  //         `${entityType.charAt(0).toUpperCase() + entityType.slice(1)
+  //         } Google Calendar connected successfully!`
+  //       );
+  //     } else {
+  //       return res.status(400).send("Invalid state.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error during Google OAuth2 flow:", error);
+  //     res.status(500).send("Error connecting to Google Calendar.");
+  //   }
+  // }
 
   static async verifyEmail(
     req: Request,
