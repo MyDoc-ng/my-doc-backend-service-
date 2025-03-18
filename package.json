@@ -4,7 +4,15 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/app.ts",
-    "dev": "npx nodemon"
+    "dev": "npx nodemon",
+    "build": "tsc",
+    "prisma": "npx prisma",
+    "prisma:generate": "npx prisma generate",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:studio": "npx prisma studio",
+    "prisma:reset": "npx prisma migrate reset --force",
+    "prisma:seed": "npx prisma db seed --preview-feature",
+    "prisma:drop": "npx prisma migrate reset --force"
   },
   "keywords": [],
   "author": "",
