@@ -29,6 +29,11 @@ app.use(responseFormatter);
 // Mount all routes
 app.use(routes);
 
+// Register a /test endpoint for testing
+app.get('/', (req: Request, res: Response) => {
+  res.status(200).send('Api is working!');
+});
+
 // Handle non-existing routes
 app.use((_req: Request, res: Response, next: NextFunction) => {
   next(
@@ -44,6 +49,7 @@ app.listen(PORT, () => {
     port: PORT,
     environment: process.env.NODE_ENV 
   });
+  
 });
 
 logger.info('Application routes mounted successfully');
