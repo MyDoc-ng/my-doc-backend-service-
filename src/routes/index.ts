@@ -9,9 +9,9 @@ const router: Router = express.Router();
 logger.info('Initializing API routes');
 
 // API Routes
-router.use('/api/users', userRoutes);
-router.use('/api/doctors', doctorRoutes);
-router.use('/api/admin', adminRoutes);
+router.use('/users', userRoutes);
+router.use('/doctors', doctorRoutes);
+router.use('/admin', adminRoutes);
 
 logger.debug('Routes initialized', {
     routes: ['/api/users', '/api/doctors', '/api/admin']

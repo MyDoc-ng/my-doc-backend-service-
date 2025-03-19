@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node src/app.ts",
     "dev": "npx nodemon",
+    "dev:build": "nodemon dist/app.js",
     "build": "tsc",
     "prisma": "npx prisma",
     "prisma:generate": "npx prisma generate",
@@ -36,7 +37,7 @@
     "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "reflect-metadata": "^0.2.2",
+    "reflect-metad ata": "^0.2.2",
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
