@@ -9,8 +9,6 @@ import {
 import { prisma } from "../prisma/prisma";
 import logger from "../logger";
 
-const doctorService = new DoctorService();
-
 export class DoctorController {
   static async index(req: Request, res: Response, next: NextFunction) {
     try {

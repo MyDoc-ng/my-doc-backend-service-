@@ -14,7 +14,7 @@ router.use('/doctors', doctorRoutes);
 router.use('/admin', adminRoutes);
 
 logger.debug('Routes initialized', {
-    routes: ['/api/users', '/api/doctors', '/api/admin']
+    routes: ['/users', '/doctors', '/admin']
 });
 
 export default router; 

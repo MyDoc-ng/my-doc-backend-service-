@@ -26,8 +26,9 @@ router.get('/users', authenticateAdmin, AdminController.getUsers);
 // router.get('/analytics/doctors', authenticateAdmin, AdminController.getDoctorAnalytics);
 // router.get('/analytics/appointments', authenticateAdmin, AdminController.getAppointmentAnalytics);
 
-router.post('/auth/register', validateData(DoctorSignupSchema), AdminController.store);
-router.post('/auth/login', validateData(DoctorSignupSchema), AdminController.store);
+//! Auth Enpoints
+router.post('/register', validateData(DoctorSignupSchema), AdminController.store);
+router.post('/login', validateData(DoctorSignupSchema), AdminController.store);
 
 
 

@@ -29,7 +29,7 @@ app.use(responseFormatter);
 // Mount all routes
 app.use(routes);
 
-// Register a /test endpoint for testing
+// Register endpoint for testing
 app.get('/', (req: Request, res: Response) => {
   res.status(200).send('Api is working!');
 });

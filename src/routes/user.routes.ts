@@ -1,22 +1,52 @@
 import express, { Router } from 'express';
 import { validateData } from '../middleware/validationMiddleware';
 import logger from '../logger';
-import { userRegisterSchema } from '../schema/user.schema';
-import { UserController } from '../controller/user.controller';
+import { userBiodataSchema, userLoginSchema, userRegisterSchema } from '../schema/user.schema';
 import { AuthController } from '../controller/auth.controller';
 import { authenticateUser } from '../middleware/authMiddleware';
 import { DoctorController } from '../controller/doctor.controller';
-
+import { upload } from '../middleware/upload';
+import { UserController } from '../controller/user.controller';
+import { appointmentSchema } from '../schema/appointment.schema';
 
 const router: Router = express.Router();
 
 logger.debug('Configuring user routes');
 
-// Auth routes
+//! Auth Enpoints
 // @ts-ignore
-router.post('/auth/register', validateData(userRegisterSchema), AuthController.register);
-router.post('/auth/login', AuthController.login);
-router.post('/auth/logout', AuthController.logout);
+router.post('/register', validateData(userRegisterSchema), AuthController.register);
+router.post('/login', validateData(userLoginSchema), AuthController.login);
+router.put('/submit-biodata', validateData(userBiodataSchema), AuthController.submitBiodata);
+router.post('/refresh-token', AuthController.refreshToken);
+router.put("/upload-photo", upload.single("photo"), AuthController.uploadUserPhoto);
+router.post('/google-login', AuthController.googleAuth);
+router.get('/verify-email', AuthController.verifyEmail);
+router.post('/logout', AuthController.logout);
+
+// All Users Endpoints
+router.get('/', [authenticateUser], UserController.getUsers);
+
+// Consultation Endpoints
+router.get('/upcoming-appointments/:userId', [authenticateUser], UserController.getUpcomingConsultations);
+router.post("/appointments/gopd", [authenticateUser],
+    validateData(appointmentSchema), UserController.bookGOPDConsultation);
+  
+
+// Doctor Endpoints
+router.get("/general-practitioners", [authenticateUser], UserController.generalPractitioners);
+
+
+
+
+
+
+
+
+
+// tell frontend to include these scopes 
+//TODO openid profile email 
+
 
 // Profile routes
 // router.get('/profile', authenticateUser, UserController.getProfile);
