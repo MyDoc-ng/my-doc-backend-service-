@@ -17,7 +17,7 @@ router.get("/auth/google/doctor/:doctorId", DoctorController.googleOAuth2);
 router.get("/auth/doctor/google/callback", DoctorController.oAuth2Callback);
 router.get("/", authenticateDoctor, DoctorController.index);
 
-router.get("/:id", authenticateDoctor, DoctorController.show);
+// router.get("/:id", authenticateDoctor, DoctorController.show);
 
 router.get("/top", authenticateDoctor, DoctorController.topDoctors);
 router.get(

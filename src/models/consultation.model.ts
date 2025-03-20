@@ -1,7 +1,12 @@
-import { SessionType } from "@prisma/client";
 
 export type GOPDBookingData = {
   doctorId: string;
   patientId: string;
-  consultationType: SessionType;
+};
+
+export type BookingData = {
+  doctorId: string;
+  patientId: string;
+  date: Date;
+  time: string;
 };

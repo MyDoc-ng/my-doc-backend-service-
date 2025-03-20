@@ -1,9 +1,10 @@
-import { SessionType, Doctor, Prisma } from "@prisma/client";
+import { SessionType, Doctor, Prisma, AppointmentStatus } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 import { NotFoundException } from "../exception/not-found";
 import { ErrorCode } from "../exception/base";
 import { google } from "googleapis";
 import { googleConfig, oauth2Client } from "../utils/oauthUtils";
+import logger from "../logger";
 
 interface FilterDoctor {
   specialization?: string;
@@ -35,11 +36,31 @@ export class DoctorService {
   }
 
   static async getDoctorById(doctorId: string) {
-    return await prisma.doctor.findUnique({
+    const doctor = await prisma.doctor.findUnique({
       where: { id: doctorId },
+      include: {
+        specialty: true,
+      },
     });
-  }
 
+    if (!doctor) {
+      logger.error('Doctor not found', { doctorId });
+      throw new NotFoundException('Doctor not found', ErrorCode.NOTFOUND);
+    }
+
+    const patientsTreated = await prisma.consultation.groupBy({
+      by: ["patientId"], 
+      where: {
+        doctorId: doctorId,
+        status: AppointmentStatus.COMPLETED, 
+      },
+    });
+
+    return {
+      ...doctor,
+      patientsTreated: patientsTreated.length,
+    }
+  }
 
   static async createDoctors(data: DoctorProfile) {
     const {
@@ -147,7 +168,31 @@ export class DoctorService {
     return { calendarId: doctor.googleCalendarId, oauth2Client };
   }
 
-  static async getGeneralPractitioners(){
-    return [];
+  static async getGeneralPractitioners() {
+    return await prisma.doctor.findMany({
+      where: {
+        specialty: {
+          name: "General Practitioner",
+        },
+      },
+      include: {
+        specialty: true, // Include specialty details if needed
+      },
+    });
   }
+
+  static async getSpecializations() {
+    return await prisma.specialty.findMany({
+      where: {
+        name: {
+          not: "General Practitioner",
+        },
+      },
+      include: {
+        doctors: true,
+      },
+    });
+  }
+
+
 }

@@ -7,7 +7,7 @@ import { authenticateUser } from '../middleware/authMiddleware';
 import { DoctorController } from '../controller/doctor.controller';
 import { upload } from '../middleware/upload';
 import { UserController } from '../controller/user.controller';
-import { appointmentSchema } from '../schema/appointment.schema';
+import { appointmentSchema, gopdSchema } from '../schema/appointment.schema';
 
 const router: Router = express.Router();
 
@@ -29,12 +29,14 @@ router.get('/', [authenticateUser], UserController.getUsers);
 
 // Consultation Endpoints
 router.get('/upcoming-appointments/:userId', [authenticateUser], UserController.getUpcomingConsultations);
-router.post("/appointments/gopd", [authenticateUser],
-    validateData(appointmentSchema), UserController.bookGOPDConsultation);
-  
+router.post("/appointments/gopd", [authenticateUser], validateData(gopdSchema), UserController.bookGOPDConsultation);
+router.post("/appointments", [authenticateUser], validateData(appointmentSchema), UserController.bookConsultation);
+
 
 // Doctor Endpoints
-router.get("/general-practitioners", [authenticateUser], UserController.generalPractitioners);
+router.get("/doctors/gp", [authenticateUser], UserController.generalPractitioners);
+router.get("/doctors/specializations", [authenticateUser], UserController.getSpecializations);
+router.get("/doctors/:doctorId", [authenticateUser], UserController.getDoctorById);
 
 
 

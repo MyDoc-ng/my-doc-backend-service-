@@ -57,7 +57,6 @@ model User {
   profilePicture    String? // Photo URL
   googleId          String?          @unique
   facebookId        String?          @unique
-  profiles          Profile[]
   appointments      Consultation[]
   medicalRecords    MedicalRecord[]
   chatMessages      ChatMessage[]    @relation("UserChats")
@@ -187,18 +186,6 @@ model ChatMessage {
   @@map("chat_messages")
 }
 
-model Profile {
-  id       String @id @default(uuid())
-  fullName String
-  contact  String
-  gender   String
-  age      Int
-  userId   String
-  user     User   @relation(fields: [userId], references: [id])
-
-  @@map("profiles")
-}
-
 model Consultation {
   id               String            @id @default(uuid())
   doctorId         String
@@ -213,7 +200,7 @@ model Consultation {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  patient User   @relation(fields: [patientId], references: [id]) //User Making the Appointment
+  patient User   @relation(fields: [patientId], references: [id])
   doctor  Doctor @relation(fields: [doctorId], references: [id])
 
   @@map("consultations")
