@@ -8,6 +8,7 @@ import { DoctorController } from '../controller/doctor.controller';
 import { upload } from '../middleware/upload';
 import { UserController } from '../controller/user.controller';
 import { appointmentSchema, gopdSchema } from '../schema/appointment.schema';
+import { NotificationController } from '../controller/notification.controller';
 
 const router: Router = express.Router();
 
@@ -37,6 +38,11 @@ router.post("/appointments", [authenticateUser], validateData(appointmentSchema)
 router.get("/doctors/gp", [authenticateUser], UserController.generalPractitioners);
 router.get("/doctors/specializations", [authenticateUser], UserController.getSpecializations);
 router.get("/doctors/:doctorId", [authenticateUser], UserController.getDoctorById);
+
+// Notification Endpoints
+router.get("/notifications", authenticateUser, NotificationController.getUserNotifications);
+router.patch("/notifications/:id/read", authenticateUser, NotificationController.markUserNotificationAsRead);
+router.patch("/notifications/read-all", authenticateUser, NotificationController.userMarkAllNotificationsAsRead);
 
 
 

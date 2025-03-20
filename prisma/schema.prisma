@@ -250,3 +250,37 @@ model RefreshToken {
 
   @@map("refresh_tokens")
 }
+
+model Notification {
+  id        String           @id @default(uuid())
+  title     String
+  message   String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Polymorphic Relationship
+  recipientId   String
+  recipientType RecipientType
+
+  @@index([recipientId, recipientType])
+}
+
+enum NotificationType {
+  APPOINTMENT_SUCCESS
+  APPOINTMENT_SCHEDULED
+  APPOINTMENT_RESCHEDULED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_REMINDER
+  NEW_MESSAGE
+  VIDEO_CALL
+  SCHEDULE_CHANGED
+  ACCOUNT_APPROVED
+  ACCOUNT_REJECTED
+}
+
+enum RecipientType {
+  USER
+  ADMIN
+  DOCTOR
+}

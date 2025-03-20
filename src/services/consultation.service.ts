@@ -2,13 +2,14 @@ import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
 import { BookingData, GOPDBookingData } from "../models/consultation.model";
-import { SessionType } from "@prisma/client";
+import { NotificationType, SessionType } from "@prisma/client";
+import { NotificationService } from "./notification.service";
 
 export class ConsultationService {
-  
+
   static async bookGOPDConsultation(data: GOPDBookingData) {
     const { doctorId, patientId } = data;
-    
+
     // Check if doctor exists
     const doctor = await prisma.doctor.findUnique({
       where: { id: doctorId },
@@ -47,12 +48,25 @@ export class ConsultationService {
       },
     });
 
+    await NotificationService.createUserNotification(
+      appointment.patientId,
+      "New Appointment",
+      `Your aapointment has recorded, kindly wait for doctor's approval`,
+      NotificationType.APPOINTMENT_SCHEDULED);
+
+    await NotificationService.createDoctorNotification(
+      appointment.doctorId,
+      "New Appointment",
+      "You have a new appointment scheduled.",
+      NotificationType.APPOINTMENT_SCHEDULED
+    );
+
     return appointment;
   }
 
   static async bookConsultation(data: BookingData) {
     const { doctorId, patientId, date, time } = data;
-    
+
     // Check if doctor exists
     const doctor = await prisma.doctor.findUnique({
       where: { id: doctorId },
@@ -93,6 +107,19 @@ export class ConsultationService {
       },
     });
 
+    await NotificationService.createUserNotification(
+      appointment.patientId,
+      "New Appointment",
+      `Your aapointment has recorded, kindly wait for doctor's approval`,
+      NotificationType.APPOINTMENT_SCHEDULED);
+
+    await NotificationService.createDoctorNotification(
+      appointment.doctorId,
+      "New Appointment",
+      "You have a new appointment scheduled.",
+      NotificationType.APPOINTMENT_SCHEDULED
+    );
+
     return appointment;
   }
 
@@ -101,7 +128,7 @@ export class ConsultationService {
       where: { id: consultationId },
     });
   }
-  
+
   static async getDoctorConsultation(doctorId: string) {
     return await prisma.consultation.findMany({
       where: { doctorId: doctorId },
