@@ -1,7 +1,5 @@
 # Node.js dependencies
 node_modules/
-uploads/
-uploads/voicenotes
 dist
 
 # Logs
@@ -27,3 +25,12 @@ yarn-error.log*
 
 # macOS files
 .DS_Store
+
+# Ignore everything in the 'uploads' directory
+uploads/*
+
+# But do not ignore the 'voicenots' directory inside 'uploads'
+!uploads/voicenotes/
+
+# Ensure files inside 'voicenots' are not ignored (optional)
+uploads/voicenotes/*
