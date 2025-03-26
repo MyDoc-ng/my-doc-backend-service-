@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
 import { prisma } from "../prisma/prisma";
+import { BadRequestException } from "../exception/bad-request";
+import { ErrorCode } from "../exception/base";
 
 export class AuthController {
   // Register a new user
@@ -60,11 +62,15 @@ export class AuthController {
   ): Promise<any> {
     try {
       if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
+        throw new BadRequestException("No file uploaded", ErrorCode.BADREQUEST);
       }
 
       const userId = req.body.userId;
-      const photoPath = req.file.path;
+      let photoPath = req.file.path;
+
+      const serverUrl = `${req.protocol}://${req.get("host")}`; 
+
+      photoPath = `${serverUrl}/${photoPath.replace(/\\/g, "/")}`;
 
       const updatedUser = await AuthService.updateUserPhoto({
         photoPath,

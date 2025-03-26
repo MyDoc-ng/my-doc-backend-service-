@@ -194,17 +194,4 @@ export class DoctorService {
     });
   }
 
-  static async getDoctorMessages(doctorId: string){
-    const messages = await prisma.chatMessage.findMany({
-      where: {
-        OR: [
-          { senderId: doctorId, senderType:  UserTypes.DOCTOR },
-          { receiverId: doctorId, receiverType: UserTypes.DOCTOR },
-        ],
-      },
-      orderBy: { createdAt: "asc" },
-    });
-
-  }
-
 }

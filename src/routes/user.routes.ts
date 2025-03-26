@@ -10,6 +10,7 @@ import { UserController } from '../controller/user.controller';
 import { appointmentSchema, gopdSchema } from '../schema/appointment.schema';
 import { NotificationController } from '../controller/notification.controller';
 import { chatSchema } from '../schema/chatValidation.schema';
+import { uploadVoice } from '../middleware/uploadVoice';
 
 const router: Router = express.Router();
 
@@ -48,6 +49,7 @@ router.patch("/notifications/read-all", authenticateUser, NotificationController
 //! Chat Endpoints
 router.post("/chats/send", authenticateUser, validateData(chatSchema), UserController.sendMessage);
 router.get("/chats/:userId", authenticateUser, UserController.getUserMessages);
+router.post("/chats/voice", authenticateUser, uploadVoice.single("voice"), UserController.sendVoiceMessage);
 
 
 

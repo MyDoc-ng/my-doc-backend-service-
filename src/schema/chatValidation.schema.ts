@@ -9,3 +9,11 @@ export const chatSchema = z.object({
     receiverType: z.enum(["USER", "DOCTOR"]),
     content: z.string().min(1, "Message cannot be empty"),
 });
+
+export const voiceMessageSchema = z.object({
+    senderId: z.string().uuid(),
+    senderType: z.enum(["USER", "DOCTOR"]),
+    receiverId: z.string().uuid(),
+    receiverType: z.enum(["USER", "DOCTOR"]),
+    voiceUrl: z.string(), // This will be generated dynamically
+  });

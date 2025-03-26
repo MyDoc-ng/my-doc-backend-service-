@@ -5,12 +5,10 @@ import { Server } from "http";
 import { chatSchema } from "../schema/chatValidation.schema";
 import logger from "../logger";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
-import { NotFoundException } from "../exception/not-found";
-import { ErrorCode } from "../exception/base";
 
 
 // Store connected clients
-const clients = new Map<string, WebSocket>();
+export const clients = new Map<string, WebSocket>();
 
 export const setupWebSocket = (server: Server) => {
     const wss = new WebSocketServer({ server });

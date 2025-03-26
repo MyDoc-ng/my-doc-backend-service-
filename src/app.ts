@@ -21,6 +21,8 @@ const PORT: number = parseInt(process.env.PORT || "8000", 10);
 
 app.use(responseFormatter);
 
+app.use("/uploads", express.static("uploads"));
+
 // Mount all routes
 app.use(routes);
 

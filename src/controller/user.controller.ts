@@ -3,7 +3,9 @@ import { UserService } from '../services/user.service';
 import logger from '../logger';
 import { DoctorService } from '../services/doctor.service';
 import { ConsultationService } from '../services/consultation.service';
-import { chatSchema } from '../schema/chatValidation.schema';
+import { ChatService } from '../services/chat.service';
+import { BadRequestException } from '../exception/bad-request';
+import { ErrorCode } from '../exception/base';
 
 
 export class UserController {
@@ -102,7 +104,31 @@ export class UserController {
     try {
       const validatedData = req.body;
 
-      const newMessage = await UserService.sendMessage(validatedData);
+      const newMessage = await ChatService.sendMessage(validatedData);
+      res.status(201).json({ success: true, message: newMessage });
+    } catch (error: any) {
+      next(error)
+    }
+  };
+
+  static async sendVoiceMessage(req: Request, res: Response, next: NextFunction) {
+    
+    try {
+      if (!req.file) {
+        throw new BadRequestException("No voice file uploaded", ErrorCode.BADREQUEST);
+      }
+
+      const serverUrl = `${req.protocol}://${req.get("host")}`; 
+
+      const messageData = {
+        senderId: req.body.senderId,
+        senderType: req.body.senderType,
+        receiverId: req.body.receiverId,
+        receiverType: req.body.receiverType,
+        voiceUrl: `${serverUrl}/uploads/voicenotes/${req.file.filename}`,
+      };
+
+      const newMessage = await ChatService.uploadVoiceMessage(messageData);
       res.status(201).json({ success: true, message: newMessage });
     } catch (error: any) {
       next(error)
@@ -113,7 +139,7 @@ export class UserController {
     const { userId } = req.params;
 
     try {
-      const messages = await UserService.getUserMessages(userId);
+      const messages = await ChatService.getUserMessages(userId);
       res.json({ success: true, messages });
     } catch (error: any) {
       next(error)

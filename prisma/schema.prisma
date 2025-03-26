@@ -173,11 +173,12 @@ model RadiologyReport {
 model ChatMessage {
   id           String   @id @default(uuid())
   senderId     String
-  senderType   UserTypes // "User" or "Doctor"
-  receiverId   String // The ID of the recipient
-  receiverType UserTypes // "User" or "Doctor"
-  content      String
+  senderType   UserTypes 
+  receiverId   String 
+  receiverType UserTypes
+  content      String?
   attachments  String? // JSON or URL of attachments
+  voiceUrl    String? 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
