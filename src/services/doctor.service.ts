@@ -1,4 +1,4 @@
-import { SessionType, Doctor, Prisma, AppointmentStatus } from "@prisma/client";
+import { SessionType, Doctor, Prisma, AppointmentStatus, UserTypes } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 import { NotFoundException } from "../exception/not-found";
 import { ErrorCode } from "../exception/base";
@@ -194,5 +194,17 @@ export class DoctorService {
     });
   }
 
+  static async getDoctorMessages(doctorId: string){
+    const messages = await prisma.chatMessage.findMany({
+      where: {
+        OR: [
+          { senderId: doctorId, senderType:  UserTypes.DOCTOR },
+          { receiverId: doctorId, receiverType: UserTypes.DOCTOR },
+        ],
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+  }
 
 }

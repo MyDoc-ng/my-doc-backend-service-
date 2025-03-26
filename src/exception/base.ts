@@ -1,21 +1,21 @@
 export class BaseHttpException extends Error {
   message: string;
-  errorCode: any; 
+  errorCode: any;
   statusCode: number;
   errors: any;
 
   constructor(
     message: string,
-    errorCode: any, 
+    errorCode: any,
     statusCode: number,
-    errors: any 
+    errors: any
   ) {
     super(message);
     this.message = message;
     this.errorCode = errorCode;
     this.statusCode = statusCode;
     this.errors = errors;
-    Object.setPrototypeOf(this, new.target.prototype); 
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 

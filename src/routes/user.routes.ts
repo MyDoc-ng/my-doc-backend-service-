@@ -9,6 +9,7 @@ import { upload } from '../middleware/upload';
 import { UserController } from '../controller/user.controller';
 import { appointmentSchema, gopdSchema } from '../schema/appointment.schema';
 import { NotificationController } from '../controller/notification.controller';
+import { chatSchema } from '../schema/chatValidation.schema';
 
 const router: Router = express.Router();
 
@@ -25,24 +26,28 @@ router.post('/google-login', AuthController.googleAuth);
 router.get('/verify-email', AuthController.verifyEmail);
 router.post('/logout', AuthController.logout);
 
-// All Users Endpoints
+//! All Users Endpoints
 router.get('/', [authenticateUser], UserController.getUsers);
 
-// Consultation Endpoints
+//! Consultation Endpoints
 router.get('/upcoming-appointments/:userId', [authenticateUser], UserController.getUpcomingConsultations);
 router.post("/appointments/gopd", [authenticateUser], validateData(gopdSchema), UserController.bookGOPDConsultation);
 router.post("/appointments", [authenticateUser], validateData(appointmentSchema), UserController.bookConsultation);
 
 
-// Doctor Endpoints
+//! Doctor Endpoints
 router.get("/doctors/gp", [authenticateUser], UserController.generalPractitioners);
 router.get("/doctors/specializations", [authenticateUser], UserController.getSpecializations);
 router.get("/doctors/:doctorId", [authenticateUser], UserController.getDoctorById);
 
-// Notification Endpoints
+//! Notification Endpoints
 router.get("/notifications", authenticateUser, NotificationController.getUserNotifications);
 router.patch("/notifications/:id/read", authenticateUser, NotificationController.markUserNotificationAsRead);
 router.patch("/notifications/read-all", authenticateUser, NotificationController.userMarkAllNotificationsAsRead);
+
+//! Chat Endpoints
+router.post("/chats/send", authenticateUser, validateData(chatSchema), UserController.sendMessage);
+router.get("/chats/:userId", authenticateUser, UserController.getUserMessages);
 
 
 

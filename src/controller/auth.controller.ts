@@ -1,9 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 import { AuthService } from "../services/auth.service";
-import {
-  handleOAuthCallback,
-  saveTokensAndCalendarId,
-} from "../utils/oauthUtils";
 import { prisma } from "../prisma/prisma";
 
 export class AuthController {

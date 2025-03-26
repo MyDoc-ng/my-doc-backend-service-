@@ -3,15 +3,13 @@ import { UserService } from '../services/user.service';
 import logger from '../logger';
 import { DoctorService } from '../services/doctor.service';
 import { ConsultationService } from '../services/consultation.service';
-import { NotFoundException } from '../exception/not-found';
-import { ErrorCode } from '../exception/base';
+import { chatSchema } from '../schema/chatValidation.schema';
 
-const userService = new UserService();
 
 export class UserController {
   static async getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const users = await userService.getUsers();
+      const users = await UserService.getUsers();
 
       res.json(users);
     } catch (error: any) {
@@ -34,7 +32,7 @@ export class UserController {
       logger.info('Fetching general practitioners');
       const doctors = await DoctorService.getGeneralPractitioners();
       logger.debug('General practitioners fetched successfully', { count: doctors.length });
-      
+
       res.status(200).json(doctors);
     } catch (error: any) {
       logger.error('Error fetching general practitioners', {
@@ -50,7 +48,7 @@ export class UserController {
       logger.info('Fetching general practitioners');
       const doctors = await DoctorService.getSpecializations();
       logger.debug('General practitioners fetched successfully', { count: doctors.length });
-      
+
       res.status(200).json(doctors);
     } catch (error: any) {
       logger.error('Error fetching general practitioners', {
@@ -62,14 +60,14 @@ export class UserController {
   }
 
   static async getDoctorById(req: Request, res: Response, next: NextFunction) {
-    
+
     try {
       const { doctorId } = req.params;
 
       logger.info('Fetching doctor by id', { doctorId });
       const doctor = await DoctorService.getDoctorById(doctorId);
       logger.debug('Doctor fetched successfully', { doctor });
-      
+
       res.status(200).json(doctor);
     } catch (error: any) {
       logger.error('Error fetching the doctor ', {
@@ -84,7 +82,7 @@ export class UserController {
     try {
       const consultation = await ConsultationService.bookGOPDConsultation(req.body);
       res.status(200).json(consultation);
-    } catch (error :any) {
+    } catch (error: any) {
       next(error)
       res.status(500).json({ message: error.message });
     }
@@ -94,9 +92,33 @@ export class UserController {
     try {
       const consultation = await ConsultationService.bookConsultation(req.body);
       res.status(200).json(consultation);
-    } catch (error :any) {
+    } catch (error: any) {
       next(error)
       res.status(500).json({ message: error.message });
     }
   }
+
+  static async sendMessage(req: Request, res: Response, next: NextFunction) {
+    try {
+      const validatedData = req.body;
+
+      const newMessage = await UserService.sendMessage(validatedData);
+      res.status(201).json({ success: true, message: newMessage });
+    } catch (error: any) {
+      next(error)
+    }
+  };
+
+  static async getUserMessages(req: Request, res: Response, next: NextFunction) {
+    const { userId } = req.params;
+
+    try {
+      const messages = await UserService.getUserMessages(userId);
+      res.json({ success: true, messages });
+    } catch (error: any) {
+      next(error)
+      // res.status(500).json({ error: "Failed to fetch messages" });
+    }
+  };
+
 }

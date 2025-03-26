@@ -13,7 +13,7 @@ enum Gender {
   FEMALE
 }
 
-enum Roles {
+enum UserTypes {
   ADMIN
   USER
   DOCTOR
@@ -48,7 +48,6 @@ model User {
   password          String?
   dateOfBirth       DateTime?        @db.Date
   gender            Gender           @default(MALE)
-  role              Roles            @default(USER)
   phoneNumber       String?          @unique
   address           String?
   medicalHistory    MedicalHistory[]
@@ -59,7 +58,6 @@ model User {
   facebookId        String?          @unique
   appointments      Consultation[]
   medicalRecords    MedicalRecord[]
-  chatMessages      ChatMessage[]    @relation("UserChats")
 
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -103,7 +101,6 @@ model Doctor {
   googleId              String?
   consultations         Consultation[]
   MedicalRecord         MedicalRecord[]
-  chatMessages          ChatMessage[]        @relation("DoctorChats")
   specialtyId           String?
   specialty             Specialty?           @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
   Payment               Payment[]
@@ -174,14 +171,15 @@ model RadiologyReport {
 }
 
 model ChatMessage {
-  id          String   @id @default(uuid())
-  userId      String // patient
-  user        User     @relation("UserChats", fields: [userId], references: [id])
-  doctorId    String // doctor
-  doctor      Doctor   @relation("DoctorChats", fields: [doctorId], references: [id])
-  message     String
-  attachments String? //  URL or JSON containing file information
-  timestamp   DateTime @default(now())
+  id           String   @id @default(uuid())
+  senderId     String
+  senderType   UserTypes // "User" or "Doctor"
+  receiverId   String // The ID of the recipient
+  receiverType UserTypes // "User" or "Doctor"
+  content      String
+  attachments  String? // JSON or URL of attachments
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@map("chat_messages")
 }
