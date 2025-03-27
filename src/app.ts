@@ -23,7 +23,6 @@ app.use(
     origin: "*", 
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed HTTP methods
     allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
-    credentials: true, // Allow cookies/auth headers
   })
 );
 
