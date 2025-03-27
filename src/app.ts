@@ -8,6 +8,7 @@ import responseFormatter from "./middleware/responseFormatter";
 import logger from "./logger";
 import { createServer } from "http";
 import { setupWebSocket } from "./configs/websocket";
+import cors from 'cors';
 
 const app = express();
 const server = createServer(app); 
@@ -16,6 +17,15 @@ const server = createServer(app);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+
+app.use(
+  cors({
+    origin: "*", 
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed HTTP methods
+    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
+    credentials: true, // Allow cookies/auth headers
+  })
+);
 
 const PORT: number = parseInt(process.env.PORT || "8000", 10);
 
