@@ -4,7 +4,7 @@ import { ConsultationController } from "../controller/consultation.controller";
 import { validateData } from "../middleware/validationMiddleware";
 import { DoctorSignupSchema } from "../schema/doctorSignup.schema";
 import logger from '../logger';
-import { authenticateDoctor } from "../middleware/authMiddleware";
+import { authenticate } from "../middleware/authMiddleware";
 
 const router: Router = express.Router();
 
@@ -15,24 +15,24 @@ logger.debug('Configuring doctor routes');
 // Route to initiate Google OAuth2 flow for doctor
 router.get("/auth/google/doctor/:doctorId", DoctorController.googleOAuth2);
 router.get("/auth/doctor/google/callback", DoctorController.oAuth2Callback);
-router.get("/", authenticateDoctor, DoctorController.index);
+router.get("/", authenticate, DoctorController.index);
 
-// router.get("/:id", authenticateDoctor, DoctorController.show);
+// router.get("/:id", authenticate, DoctorController.show);
 
-router.get("/top", authenticateDoctor, DoctorController.topDoctors);
+router.get("/top", authenticate, DoctorController.topDoctors);
 router.get(
   "/general-practitioners",
-  authenticateDoctor,
+  authenticate,
   DoctorController.generalPractitioners
 );
 
 router.get(
   "/:doctorId/availability",
-  authenticateDoctor,
+  authenticate,
   consultationController.getDoctorAvailability
 );
 
-router.post('/auth/register', validateData(DoctorSignupSchema), DoctorController.store);
+router.post('/register', validateData(DoctorSignupSchema), DoctorController.store);
 router.post('/auth/login', validateData(DoctorSignupSchema), DoctorController.store);
 
 

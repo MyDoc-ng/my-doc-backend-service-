@@ -3,7 +3,7 @@ import { validateData } from '../middleware/validationMiddleware';
 import logger from '../logger';
 import { userBiodataSchema, userLoginSchema, userRegisterSchema } from '../schema/user.schema';
 import { AuthController } from '../controller/auth.controller';
-import { authenticateUser } from '../middleware/authMiddleware';
+import { authenticate } from '../middleware/authMiddleware';
 import { DoctorController } from '../controller/doctor.controller';
 import { upload } from '../middleware/upload';
 import { UserController } from '../controller/user.controller';
@@ -19,37 +19,42 @@ logger.debug('Configuring user routes');
 //! Auth Enpoints
 // @ts-ignore
 router.post('/register', validateData(userRegisterSchema), AuthController.register);
-router.post('/login', validateData(userLoginSchema), AuthController.login);
 router.put('/submit-biodata', validateData(userBiodataSchema), AuthController.submitBiodata);
-router.post('/refresh-token', AuthController.refreshToken);
 router.put("/upload-photo", upload.single("photo"), AuthController.uploadUserPhoto);
 router.post('/google-login', AuthController.googleAuth);
 router.get('/verify-email', AuthController.verifyEmail);
+router.post('/refresh-token', AuthController.refreshToken);
+router.post('/login', validateData(userLoginSchema), AuthController.login);
 router.post('/logout', AuthController.logout);
 
 //! All Users Endpoints
-router.get('/', [authenticateUser], UserController.getUsers);
+router.get('/', [authenticate], UserController.getUsers);
 
 //! Consultation Endpoints
-router.get('/upcoming-appointments/:userId', [authenticateUser], UserController.getUpcomingConsultations);
-router.post("/appointments/gopd", [authenticateUser], validateData(gopdSchema), UserController.bookGOPDConsultation);
-router.post("/appointments", [authenticateUser], validateData(appointmentSchema), UserController.bookConsultation);
+router.get('/upcoming-appointments/:userId', [authenticate], UserController.getUpcomingConsultations);
+router.post("/appointments/gopd", [authenticate], validateData(gopdSchema), UserController.bookGOPDConsultation);
+router.post("/appointments", [authenticate], validateData(appointmentSchema), UserController.bookConsultation);
 
 
 //! Doctor Endpoints
-router.get("/doctors/gp", [authenticateUser], UserController.generalPractitioners);
-router.get("/doctors/specializations", [authenticateUser], UserController.getSpecializations);
-router.get("/doctors/:doctorId", [authenticateUser], UserController.getDoctorById);
+router.get("/doctors/gp", [authenticate], UserController.generalPractitioners);
+router.get("/doctors/specializations", [authenticate], UserController.getSpecializations);
+router.get("/doctors/:doctorId", [authenticate], UserController.getDoctorById);
+
+//! Reviews Endpoints
+router.post('/reviews', [authenticate], UserController.reviewDoctor);
+router.get("/reviews/:doctorId", [authenticate], UserController.getDoctorReviews);
+  
 
 //! Notification Endpoints
-router.get("/notifications", authenticateUser, NotificationController.getUserNotifications);
-router.patch("/notifications/:id/read", authenticateUser, NotificationController.markUserNotificationAsRead);
-router.patch("/notifications/read-all", authenticateUser, NotificationController.userMarkAllNotificationsAsRead);
+router.get("/notifications", authenticate, NotificationController.getUserNotifications);
+router.patch("/notifications/:id/read", authenticate, NotificationController.markUserNotificationAsRead);
+router.patch("/notifications/read-all", authenticate, NotificationController.userMarkAllNotificationsAsRead);
 
 //! Chat Endpoints
-router.post("/chats/send", authenticateUser, validateData(chatSchema), UserController.sendMessage);
-router.get("/chats/:userId", authenticateUser, UserController.getUserMessages);
-router.post("/chats/voice", authenticateUser, uploadVoice.single("voice"), UserController.sendVoiceMessage);
+router.post("/chats/send", authenticate, validateData(chatSchema), UserController.sendMessage);
+router.get("/chats/:userId", authenticate, UserController.getUserMessages);
+router.post("/chats/voice", authenticate, uploadVoice.single("voice"), UserController.sendVoiceMessage);
 
 
 
@@ -64,13 +69,13 @@ router.post("/chats/voice", authenticateUser, uploadVoice.single("voice"), UserC
 
 
 // Profile routes
-// router.get('/profile', authenticateUser, UserController.getProfile);
+// router.get('/profile', authenticate, UserController.getProfile);
 // router.put('/profile', authenticate, UserController.updateProfile);
 
 // Appointment routes
 // router.get('/appointments', authenticate, UserController.getAppointments);
 // router.post('/appointments', authenticate, UserController.createAppointment);
-router.get("/doctors", authenticateUser, DoctorController.index);
+router.get("/doctors", authenticate, DoctorController.index);
 
 
 

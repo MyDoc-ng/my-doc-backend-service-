@@ -4,6 +4,8 @@ import { ErrorCode } from "../exception/base";
 import { BookingData, GOPDBookingData } from "../models/consultation.model";
 import { NotificationType, SessionType } from "@prisma/client";
 import { NotificationService } from "./notification.service";
+import { checkIfUserExists } from "../utils/checkIfUserExists";
+import { NotFoundException } from "../exception/not-found";
 
 export class ConsultationService {
 
@@ -11,27 +13,15 @@ export class ConsultationService {
     const { doctorId, patientId } = data;
 
     // Check if doctor exists
-    const doctor = await prisma.doctor.findUnique({
-      where: { id: doctorId },
-    });
-
-    if (!doctor) {
-      throw new BadRequestException(
-        'Doctor not found',
-        ErrorCode.BADREQUEST
-      );
+    const doctorExists = await checkIfUserExists(doctorId);
+    if (!doctorExists) {
+      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
     }
 
     // Check if patient exists
-    const patient = await prisma.user.findUnique({
-      where: { id: patientId },
-    });
-
-    if (!patient) {
-      throw new BadRequestException(
-        'Patient not found',
-        ErrorCode.BADREQUEST
-      );
+    const patientExists = await checkIfUserExists(patientId);
+    if (!patientExists) {
+      throw new NotFoundException("Patient not found", ErrorCode.NOTFOUND);
     }
 
     const startTime = new Date(); // Current time
@@ -48,13 +38,13 @@ export class ConsultationService {
       },
     });
 
-    await NotificationService.createUserNotification(
+    await NotificationService.createNotification(
       appointment.patientId,
       "New Appointment",
       `Your aapointment has recorded, kindly wait for doctor's approval`,
       NotificationType.APPOINTMENT_SCHEDULED);
 
-    await NotificationService.createDoctorNotification(
+    await NotificationService.createNotification(
       appointment.doctorId,
       "New Appointment",
       "You have a new appointment scheduled.",
@@ -133,8 +123,21 @@ export class ConsultationService {
     return await prisma.consultation.findMany({
       where: { doctorId: doctorId },
       include: {
-        patient: true, // Include patient details
+        patient: true,
       },
+    });
+  }
+
+  static async reviewDoctor(doctorId: string, userId: string, rating: number, comment: string) {
+    return await prisma.review.create({
+      data: { doctorId, userId, rating, comment },
+    });
+  }
+
+  static async getDoctorReviews(doctorId: string) {
+    return await prisma.review.findMany({
+      where: { doctorId },
+      orderBy: { createdAt: "desc" },
     });
   }
 }

@@ -86,7 +86,6 @@ export class UserController {
       res.status(200).json(consultation);
     } catch (error: any) {
       next(error)
-      res.status(500).json({ message: error.message });
     }
   }
 
@@ -109,16 +108,16 @@ export class UserController {
     } catch (error: any) {
       next(error)
     }
-  };
+  }
 
   static async sendVoiceMessage(req: Request, res: Response, next: NextFunction) {
-    
+
     try {
       if (!req.file) {
         throw new BadRequestException("No voice file uploaded", ErrorCode.BADREQUEST);
       }
 
-      const serverUrl = `${req.protocol}://${req.get("host")}`; 
+      const serverUrl = `${req.protocol}://${req.get("host")}`;
 
       const messageData = {
         senderId: req.body.senderId,
@@ -133,7 +132,7 @@ export class UserController {
     } catch (error: any) {
       next(error)
     }
-  };
+  }
 
   static async getUserMessages(req: Request, res: Response, next: NextFunction) {
     const { userId } = req.params;
@@ -143,8 +142,35 @@ export class UserController {
       res.json({ success: true, messages });
     } catch (error: any) {
       next(error)
-      // res.status(500).json({ error: "Failed to fetch messages" });
     }
-  };
+  }
+
+  static async reviewDoctor(req: Request, res: Response, next: NextFunction) {
+    const { doctorId, userId, rating, comment } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      res.status(400).json({ message: "Invalid rating. Must be between 1 and 5." });
+    }
+
+    try {
+      const review = ConsultationService.reviewDoctor(doctorId, userId, rating, comment);
+
+      res.status(201).json({ message: "Review submitted successfully!", review });
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  static async getDoctorReviews(req: Request, res: Response, next: NextFunction) {
+    const { doctorId } = req.params;
+
+    try {
+      const reviews = ConsultationService.getDoctorReviews(doctorId);
+
+      res.status(200).json(reviews);
+    } catch (error) {
+      next(error)
+    }
+  }
 
 }

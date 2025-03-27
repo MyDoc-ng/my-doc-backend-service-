@@ -18,13 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use(
-  cors({
-    origin: "*", 
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Allowed HTTP methods
-    allowedHeaders: ["Content-Type", "Authorization"], // Allowed headers
-  })
-);
+app.use(cors());
 
 const PORT: number = parseInt(process.env.PORT || "8000", 10);
 

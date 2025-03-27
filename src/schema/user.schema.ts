@@ -29,13 +29,13 @@ export const userBiodataSchema = z.object({
   gender: GenderEnum,
   phoneNumber: z.string().regex(/^\+?\d{10,15}$/, "Invalid phone number"),
   address: z.string().min(5, "Address must be at least 5 characters"),
-  medicalHistory: z
-    .object({
-      pastSurgeries: z.boolean(),
-      currentMeds: z.boolean(),
-      drugAllergies: z.boolean(),
-    })
-    .optional(),
+  // medicalHistory: z
+  //   .object({
+  //     pastSurgeries: z.boolean(),
+  //     currentMeds: z.boolean(),
+  //     drugAllergies: z.boolean(),
+  //   })
+  //   .optional(),
 });
 
 // Define the Zod schema for login

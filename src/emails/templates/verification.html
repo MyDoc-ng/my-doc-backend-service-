@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Verify Your Email</title>
+    <style>
+      .container {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      .button {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Hello {{name}}, Verify Your Email</h2>
+      <p>Please click the button below to verify your email address.</p>
+      <a class="button" href="{{verificationLink}}">Verify Email</a>
+      <p>If you didn't request this, please ignore this email.</p>
+    </div>
+  </body>
+</html>

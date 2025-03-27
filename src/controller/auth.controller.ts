@@ -122,13 +122,14 @@ export class AuthController {
   }
 
   static async logout(req: Request, res: Response): Promise<any> {
-    const { token } = req.body;
-
-    // Delete Refresh Token from DB
-    await prisma.refreshToken.deleteMany({ where: { token } });
-
+    const { userId } = req.body; // Remove token, only use userId
+  
+    // Delete all Refresh Tokens for the user
+    await prisma.refreshToken.deleteMany({ where: { userId } });
+  
     res.json({ message: "Logged out successfully" });
   }
+  
 
   // static async oAuth2Callback(req: Request, res: Response): Promise<any> {
   //   const code = req.query.code as string;

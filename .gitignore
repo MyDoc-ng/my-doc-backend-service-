@@ -29,8 +29,8 @@ yarn-error.log*
 # Ignore everything in the 'uploads' directory
 uploads/*
 
-# But do not ignore the 'voicenots' directory inside 'uploads'
+# But do not ignore the 'voicenotes' directory inside 'uploads'
 !uploads/voicenotes/
 
-# Ensure files inside 'voicenots' are not ignored (optional)
+# Ensure files inside 'voicenots' are ignored (optional)
 uploads/voicenotes/*

@@ -18,6 +18,7 @@ export interface LoginResponse {
   refreshToken: string;
   name: string;
   email: string;
+  id: string;
 }
 
 // Type for Biodata Submission
@@ -27,9 +28,4 @@ export interface UserBioData {
   gender: Gender; 
   phoneNumber: string;
   address: string;
-  medicalHistory?: {
-    pastSurgeries: boolean;
-    currentMeds: boolean;
-    drugAllergies: boolean;
-  }; 
 }

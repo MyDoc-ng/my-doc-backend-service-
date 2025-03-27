@@ -3,170 +3,85 @@ import jwt from "jsonwebtoken";
 import { UnauthorizedException } from "../exception/unauthorized";
 import { ErrorCode } from "../exception/base";
 import logger from "../logger";
+import { UserTypes } from "@prisma/client";
 
-// Common fields that all payloads might share
-interface BaseJwtPayload {
+// Define a common JWT payload interface
+export interface JwtPayload {
   id: string;
   email: string;
-  iat?: number;  // Issued at timestamp (automatically added by JWT)
-  exp?: number;  // Expiration timestamp (automatically added by JWT)
-}
-
-export interface JwtUserPayload extends BaseJwtPayload {
+  role: UserTypes; 
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  address?: string;
   profileImage?: string;
   isVerified?: boolean;
   lastLogin?: string;
-  preferences?: {
-    notifications?: boolean;
-    language?: string;
-    timezone?: string;
+  specialization?: string; // If doctor
+  permissions?: string[]; // If admin
+}
+
+// Extend Express Request to include user payload
+export interface AuthenticatedRequest extends Request {
+  user?: JwtPayload;
+}
+
+// Middleware to authenticate any user (User, Doctor, Admin)
+export const authenticate = (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  const token = req.headers.authorization;
+
+  logger.debug("Verifying user token", { tokenExists: !!token });
+
+  if (!token) {
+    logger.warn("No token provided for authentication");
+    return next(
+      new UnauthorizedException("Unauthorized", ErrorCode.UNAUTHORIZED)
+    );
+  }
+
+  try {
+    jwt.verify(token, process.env.JWT_SECRET as string, (err, decoded) => {
+      if (err) {
+        logger.error("Token verification failed", { error: err.message });
+        return next(
+          new UnauthorizedException("Unauthorized", ErrorCode.UNAUTHORIZED)
+        );
+      }
+
+      req.user = decoded as JwtPayload;
+      logger.debug("User authenticated successfully", {
+        userId: req.user.id,
+        role: req.user.role,
+      });
+
+      next();
+    });
+  } catch (error: any) {
+    logger.error("Authentication error", { error: error.message });
+    next(new UnauthorizedException("Unauthorized", ErrorCode.UNAUTHORIZED));
+  }
+};
+
+// Middleware to restrict access based on roles
+export const authorize =
+  (allowedRoles: Array<"PATIENT" | "DOCTOR" | "ADMIN">) =>
+  (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    if (!req.user || !allowedRoles.includes(req.user.role)) {
+      return next(
+        new UnauthorizedException(
+          "Forbidden: You do not have access to this resource",
+          ErrorCode.FORBIDDEN
+        )
+      );
+    }
+
+    logger.debug("Authorization successful", {
+      userId: req.user.id,
+      role: req.user.role,
+    });
+
+    next();
   };
-}
-
-export interface JwtDoctorPayload extends BaseJwtPayload {
-  firstName?: string;
-  lastName?: string;
-  specialization?: string;
-  licenseNumber?: string;
-  experience?: number;
-  qualification?: string;
-  hospitalAffiliation?: string;
-  availability?: {
-    days?: string[];
-    hours?: string[];
-    timezone?: string;
-  };
-  rating?: number;
-  isVerified?: boolean;
-  isOnline?: boolean;
-  profileImage?: string;
-  googleCalendarId?: string;
-  consultationFee?: number;
-  languages?: string[];
-}
-
-export interface JwtAdminPayload extends BaseJwtPayload {
-  firstName?: string;
-  lastName?: string;
-  role?: string;
-  permissions?: string[];
-  department?: string;
-  lastLogin?: string;
-  isSuperAdmin?: boolean;
-  accessLevel?: number;
-  createdAt?: string;
-  modifiedAt?: string;
-}
-
-// Define request types that extend Express.Request
-export interface AuthenticatedUserRequest extends Request {
-  user?: JwtUserPayload;  // Make optional to match Express.Request
-}
-
-export interface AuthenticatedDoctorRequest extends Request {
-  doctor?: JwtDoctorPayload;  // Make optional to match Express.Request
-}
-
-export interface AuthenticatedAdminRequest extends Request {
-  admin?: JwtAdminPayload;  // Make optional to match Express.Request
-}
-
-// Type the middleware functions
-export const authenticateUser = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const token = req.headers.authorization;
-
-  logger.debug('Verifying user token', { tokenExists: !!token });
-
-  if (!token) {
-    logger.warn('No token provided for user authentication');
-    return next(new UnauthorizedException("unauthorized", ErrorCode.UNAUTHORIZED));
-  }
-
-  try {
-    jwt.verify(token, process.env.JWT_SECRET as string, (err, decoded) => {
-      if (err) {
-        logger.error('User token verification failed', { error: err.message });
-        return next(new UnauthorizedException("unauthorized", ErrorCode.UNAUTHORIZED));
-      }
-
-      (req as AuthenticatedUserRequest).user = decoded as JwtUserPayload;
-      logger.debug('User authenticated successfully', { userId: (decoded as JwtUserPayload).id });
-      next();
-    });
-  } catch (error: any) {
-    logger.error('User authentication error', { error: error.message });
-    next(new UnauthorizedException("unauthorized", ErrorCode.UNAUTHORIZED));
-  }
-};
-
-export const authenticateDoctor = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const token = req.headers.authorization;
-
-  logger.debug('Verifying doctor token', { tokenExists: !!token });
-
-  if (!token) {
-    logger.warn('No token provided for doctor authentication');
-    return next(new UnauthorizedException("unauthorized", ErrorCode.UNAUTHORIZED));
-  }
-
-  try {
-    jwt.verify(token, process.env.JWT_SECRET as string, (err, decoded) => {
-      if (err) {
-        logger.error('Doctor token verification failed', { error: err.message });
-        return next(new UnauthorizedException("unauthorized", ErrorCode.UNAUTHORIZED));
-      }
-
-      (req as AuthenticatedDoctorRequest).doctor = decoded as JwtDoctorPayload;
-      logger.debug('Doctor authenticated successfully', { doctorId: (decoded as JwtDoctorPayload).id });
-      next();
-    });
-  } catch (error: any) {
-    logger.error('Doctor authentication error', { error: error.message });
-    next(new UnauthorizedException("unauthorized", ErrorCode.UNAUTHORIZED));
-  }
-};
-
-export const authenticateAdmin = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
-  const token = req.headers.authorization;
-
-  logger.debug('Verifying admin token', { tokenExists: !!token });
-
-  if (!token) {
-    logger.warn('No token provided for admin authentication');
-    return next(new UnauthorizedException("unauthorized", ErrorCode.UNAUTHORIZED));
-  }
-
-  try {
-    jwt.verify(token, process.env.JWT_SECRET as string, (err, decoded) => {
-      if (err) {
-        logger.error('Admin token verification failed', { error: err.message });
-        return next(new UnauthorizedException("unauthorized", ErrorCode.UNAUTHORIZED));
-      }
-
-      (req as AuthenticatedAdminRequest).admin = decoded as JwtAdminPayload;
-      logger.debug('Admin authenticated successfully', { adminId: (decoded as JwtAdminPayload).id });
-      next();
-    });
-  } catch (error: any) {
-    logger.error('Admin authentication error', { error: error.message });
-    next(new UnauthorizedException("unauthorized", ErrorCode.UNAUTHORIZED));
-  }
-};
