@@ -15,7 +15,7 @@ enum Gender {
 
 enum UserTypes {
   ADMIN
-  USER
+  PATIENT
   DOCTOR
 }
 
@@ -41,81 +41,201 @@ enum TransactionType {
   REFERRAL
 }
 
+enum PaymentStatus {
+  PENDING
+  SUCCESSFUL
+  FAILED
+}
+
+enum NotificationType {
+  APPOINTMENT_SUCCESS
+  APPOINTMENT_SCHEDULED
+  APPOINTMENT_RESCHEDULED
+  APPOINTMENT_CANCELLED
+  APPOINTMENT_REMINDER
+  NEW_MESSAGE
+  VIDEO_CALL
+  SCHEDULE_CHANGED
+  ACCOUNT_APPROVED
+  ACCOUNT_REJECTED
+}
+
 model User {
-  id                String           @id @default(uuid())
+  id                String    @id @default(uuid())
+  role              UserTypes @default(PATIENT)
   name              String
-  email             String           @unique
+  email             String    @unique
   password          String?
-  dateOfBirth       DateTime?        @db.Date
-  gender            Gender           @default(MALE)
-  phoneNumber       String?          @unique
-  address           String?
-  medicalHistory    MedicalHistory[]
-  emailVerified     Boolean          @default(false) // Add this
-  verificationToken String? // Store Verification Token
-  profilePicture    String? // Photo URL
-  googleId          String?          @unique
-  facebookId        String?          @unique
-  appointments      Consultation[]
-  medicalRecords    MedicalRecord[]
+  emailVerified     Boolean   @default(false)
+  verificationToken String?
+  googleId          String?   @unique
+  facebookId        String?   @unique
+
+  patientProfile PatientProfile?
+  doctorProfile  DoctorProfile?
+  adminProfile   AdminProfile?
+
+  PatientReviews       Review[]         @relation(name: "PatientReviews")
+  DoctorReviews        Review[]         @relation(name: "DoctorReviews")
+  RefreshToken         RefreshToken[]
+  DoctorPayments       Payment[]        @relation(name: "DoctorPayments")
+  PatientPayments      Payment[]        @relation(name: "PatientPayments")
+  MedicalHistory       MedicalHistory[]
+  MedicalRecord        MedicalRecord[]
+  doctorConsultations  Consultation[]   @relation(name: "DoctorConsultations")
+  patientConsultations Consultation[]   @relation(name: "PatientConsultations")
+  ReceiverMessages     ChatMessage[]    @relation(name: "ReceiverMessages")
+  SenderMessages       ChatMessage[]    @relation(name: "SenderMessages")
+  Notification Notification[]
 
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
-  Payments     Payment[]
-  RefreshToken RefreshToken[]
 
-  @@map("users")
+  @@map("users") // Keeps table name as 'users'
 }
 
-model MedicalHistory {
-  id            String  @id @default(uuid())
-  userId        String
-  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pastSurgeries Boolean
-  currentMeds   Boolean
-  drugAllergies Boolean
+model PatientProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("medical_histories")
+  dateOfBirth    DateTime?        @db.Date
+  gender         Gender           @default(MALE)
+  address        String?
+  phoneNumber       String?   @unique
+  profilePicture    String?
+  medicalHistory MedicalHistory[]
+  medicalRecords MedicalRecord[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model Doctor {
-  id                    String               @id @default(uuid())
-  name                  String?
-  email                 String               @unique
+model DoctorProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   experience            Int?
-  ratings               Float?               @default(0)
   certifications        String?
   location              String?
   consultationTypes     SessionType[]
   consultationFees      Float?
-  homeVisitCharge       Float? // added based on distance
+  homeVisitCharge       Float?
   videoConsultationFee  Float?
   clinicConsultationFee Float?
   availability          DoctorAvailability[]
   isOnline              Boolean              @default(false)
   lastActive            DateTime?
   bio                   String?
-  accessToken           String?
-  refreshToken          String?
-  password              String?
-  googleId              String?
-  consultations         Consultation[]
-  MedicalRecord         MedicalRecord[]
-  specialtyId           String?
-  specialty             Specialty?           @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
-  Payment               Payment[]
-  googleCalendarId      String? // Doctor's Google Calendar ID
-  googleRefreshToken    String? // Doctor's Google OAuth2 Refresh Token
+  reference             String?              @unique
+  cv                    String?
+  medicalLicense        String?
+  isApproved            Boolean              @default(false)
+  balance               Float                @default(0)
+  googleCalendarId      String?
+  googleRefreshToken    String?
 
-  @@map("doctors")
+  specialtyId String?
+  specialty   Specialty? @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
+model AdminProfile {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  permissions String[] // List of admin permissions
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// model User {
+//   id                String           @id @default(uuid())
+//   name              String
+//   email             String           @unique
+//   password          String?
+//   dateOfBirth       DateTime?        @db.Date
+//   gender            Gender           @default(MALE)
+//   phoneNumber       String?          @unique
+//   address           String?
+//   medicalHistory    MedicalHistory[]
+//   emailVerified     Boolean          @default(false) // Add this
+//   verificationToken String? // Store Verification Token
+//   profilePicture    String? // Photo URL
+//   googleId          String?          @unique
+//   facebookId        String?          @unique
+//   appointments      Consultation[]
+//   medicalRecords    MedicalRecord[]
+//   Review       Review[]
+//   RefreshToken RefreshToken[]
+//   Payments     Payment[]
+
+//   createdAt    DateTime       @default(now())
+//   updatedAt    DateTime       @updatedAt
+//   @@map("users")
+// }
+
+model MedicalHistory {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pastSurgeries    Boolean
+  currentMeds      Boolean
+  drugAllergies    Boolean
+  PatientProfile   PatientProfile? @relation(fields: [patientProfileId], references: [id])
+  patientProfileId String?
+
+  @@map("medical_histories")
+}
+
+// model Doctor {
+//   id                    String               @id @default(uuid())
+//   name                  String?
+//   email                 String               @unique
+//   experience            Int?
+//   certifications        String?
+//   location              String?
+//   consultationTypes     SessionType[]
+//   consultationFees      Float?
+//   homeVisitCharge       Float? // added based on distance
+//   videoConsultationFee  Float?
+//   clinicConsultationFee Float?
+//   availability          DoctorAvailability[]
+//   isOnline              Boolean              @default(false)
+//   lastActive            DateTime?
+//   bio                   String?
+//   reference             String               @unique
+//   cv                    String?
+//   medicalLicense        String?
+//   isApproved            Boolean              @default(false)
+//   balance               Float                @default(0)
+//   accessToken           String?
+//   refreshToken          String?
+//   password              String?
+//   googleId              String?
+//   consultations         Consultation[]
+//   MedicalRecord         MedicalRecord[]
+//   specialtyId           String?
+//   specialty             Specialty?           @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
+//   Payment               Payment[]
+//   googleCalendarId      String? // Doctor's Google Calendar ID
+//   googleRefreshToken    String? // Doctor's Google OAuth2 Refresh Token
+//   Review                Review[]
+//   createdAt             DateTime             @default(now())
+//   updatedAt             DateTime             @updatedAt
+
+//   @@map("doctors")
+// }
 
 model MedicalRecord {
   id                  String            @id @default(uuid())
-  patientId           String
-  patient             User              @relation(fields: [patientId], references: [id])
-  doctorId            String?
-  doctor              Doctor?           @relation(fields: [doctorId], references: [id])
+  userId              String
+  user                User              @relation(fields: [userId], references: [id])
   consultationSummary String?
   diagnosis           String?
   treatmentPlan       String?
@@ -124,6 +244,8 @@ model MedicalRecord {
   radiologyReports    RadiologyReport[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
+  PatientProfile      PatientProfile?   @relation(fields: [patientProfileId], references: [id])
+  patientProfileId    String?
 
   @@map("medical_records")
 }
@@ -171,16 +293,19 @@ model RadiologyReport {
 }
 
 model ChatMessage {
-  id           String   @id @default(uuid())
-  senderId     String
-  senderType   UserTypes 
-  receiverId   String 
-  receiverType UserTypes
-  content      String?
-  attachments  String? // JSON or URL of attachments
-  voiceUrl    String? 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String    @id @default(uuid())
+  senderId    String
+  receiverId  String
+  content     String?
+  attachments Json? // Store multiple file URLs or metadata
+  voiceUrl    String?
+  readAt      DateTime? // When the message was read
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relationships
+  sender   User @relation(fields: [senderId], references: [id], name: "SenderMessages")
+  receiver User @relation(fields: [receiverId], references: [id], name: "ReceiverMessages")
 
   @@map("chat_messages")
 }
@@ -199,16 +324,16 @@ model Consultation {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
-  patient User   @relation(fields: [patientId], references: [id])
-  doctor  Doctor @relation(fields: [doctorId], references: [id])
+  patient User @relation(fields: [patientId], references: [id], name: "PatientConsultations")
+  doctor  User @relation(fields: [doctorId], references: [id], name: "DoctorConsultations")
 
   @@map("consultations")
 }
 
 model Specialty {
-  id      String   @id @default(uuid())
-  name    String   @unique()
-  doctors Doctor[]
+  id            String          @id @default(uuid())
+  name          String          @unique()
+  DoctorProfile DoctorProfile[]
 
   @@map("specialties")
 }
@@ -219,22 +344,23 @@ model DoctorAvailability {
   date     DateTime
   time     String // Store time as a string like "10:00 AM", "11:00 AM"
 
-  doctor Doctor @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  DoctorProfile   DoctorProfile? @relation(fields: [doctorProfileId], references: [id])
+  doctorProfileId String?
 
   @@map("doctor_availabilities")
 }
 
 model Payment {
-  id            String   @id @default(uuid())
-  patientId     String
-  doctorId      String
+  id            String        @id @default(uuid())
+  userId        String
+  doctorId      String? // Optional: Some payments might not be to a doctor
   amount        Float
-  status        String   @default("pending") // pending, successful, failed
-  transactionId String
-  createdAt     DateTime @default(now())
+  status        PaymentStatus @default(PENDING)
+  transactionId String        @unique
+  createdAt     DateTime      @default(now())
 
-  patient User   @relation(fields: [patientId], references: [id])
-  doctor  Doctor @relation(fields: [doctorId], references: [id])
+  user   User  @relation(fields: [userId], references: [id], name: "PatientPayments")
+  doctor User? @relation(fields: [doctorId], references: [id], name: "DoctorPayments")
 
   @@map("payments")
 }
@@ -258,28 +384,22 @@ model Notification {
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
 
-  // Polymorphic Relationship
-  recipientId   String
-  recipientType RecipientType
+  recipientId String
+  user        User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
 
-  @@index([recipientId, recipientType])
+  @@index([recipientId])
 }
 
-enum NotificationType {
-  APPOINTMENT_SUCCESS
-  APPOINTMENT_SCHEDULED
-  APPOINTMENT_RESCHEDULED
-  APPOINTMENT_CANCELLED
-  APPOINTMENT_REMINDER
-  NEW_MESSAGE
-  VIDEO_CALL
-  SCHEDULE_CHANGED
-  ACCOUNT_APPROVED
-  ACCOUNT_REJECTED
+model Review {
+  id        String   @id @default(uuid())
+  doctorId  String
+  userId    String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  doctor  User @relation(fields: [doctorId], references: [id], name: "DoctorReviews")
+  patient User @relation(fields: [userId], references: [id], name: "PatientReviews")
 }
 
-enum RecipientType {
-  USER
-  ADMIN
-  DOCTOR
-}
+
