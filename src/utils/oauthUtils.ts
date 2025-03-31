@@ -1,6 +1,8 @@
 import { google } from "googleapis";
 import { PrismaClient } from "@prisma/client";
 import logger from "../logger";
+import { NotFoundException } from "../exception/not-found";
+import { ErrorCode } from "../exception/base";
 
 export const googleConfig = {
   clientId: process.env.GOOGLE_CLIENT_ID,
@@ -120,19 +122,19 @@ export async function saveTokensAndCalendarId(params: SaveTokenParams): Promise<
     }
 
     // First verify the doctor exists
-    const doctor = await prisma.doctor.findUnique({
+    const doctor = await prisma.user.findUnique({
       where: { id: doctorId },
       select: { id: true }
     });
 
     if (!doctor) {
       logger.error('Doctor not found in database', { doctorId });
-      throw new Error(`Doctor with ID ${doctorId} not found in database`);
+      throw new NotFoundException(`Doctor with ID ${doctorId} not found in database`, ErrorCode.NOTFOUND);
     }
 
-    const updatedDoctor = await prisma.doctor.update({
+    const updatedDoctor = await prisma.doctorProfile.update({
       where: { 
-        id: doctorId
+        userId: doctorId
       },
       data: {
         googleRefreshToken: tokens.refresh_token,
@@ -163,7 +165,7 @@ export async function saveTokensAndCalendarId(params: SaveTokenParams): Promise<
     });
 
     if (error.message.includes('Record to update not found')) {
-      throw new Error(`Doctor with ID ${doctorId} not found in database`);
+      throw new NotFoundException(`Doctor with ID ${doctorId} not found in database`, ErrorCode.NOTFOUND);
     }
     
     throw new Error(`Failed to save OAuth tokens for doctor ${doctorId}: ${error.message}`);

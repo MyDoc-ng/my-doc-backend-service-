@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import logger from "../logger";
 import { DoctorService } from "../services/doctor.service";
+import { AuthService } from "../services/auth.service";
 
 export class AdminController {
     static async getUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -13,7 +14,7 @@ export class AdminController {
           userData: { ...req.body, password: undefined } // Log user data without sensitive information
         });
         
-        const doctor = await DoctorService.createDoctors(req.body);
+        const doctor = await AuthService.registerDoctors(req.body);
         logger.debug('Doctor created successfully', { doctorId: doctor.id });
   
         res.status(201).json({ message: 'Doctor created successfully', doctor });

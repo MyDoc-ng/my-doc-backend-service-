@@ -1,8 +1,6 @@
 import { NextFunction, Request, Response } from "express";
-import { AppointmentService } from "../services/appointment.service";
-import { Prisma } from "@prisma/client";
+import { ConsultationService } from "../services/appointment.service";
 
-const appointmentService = new AppointmentService();
 
 export class AppointmentController {
   async getAppointments(
@@ -11,7 +9,7 @@ export class AppointmentController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const appointments = await appointmentService.getAppointments();
+      const appointments = await ConsultationService.getAllAppointments();
 
       res.json(appointments);
     } catch (error: any) {
@@ -41,7 +39,7 @@ export class AppointmentController {
     const userId = req.query.userId as string;
 
     try {
-      const upcomingAppointments = await appointmentService.getUpcomingAppointment(userId);
+      const upcomingAppointments = await ConsultationService.getUpcomingAppointment(userId);
 
       res.json(upcomingAppointments);
     } catch (error: any) {
