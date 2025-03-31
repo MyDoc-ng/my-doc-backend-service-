@@ -1,11 +1,9 @@
 // src/controllers/booking.controller.ts
 import { NextFunction, Request, Response } from "express";
-import { ConsultationService } from "../services/consultation.service";
+import { ConsultationService } from "../services/appointment.service";
 // import { findDoctors, getDoctorAvailability } from '../services/doctor.service';
 import { DoctorService } from "../services/doctor.service";
-import { AppointmentStatus, SessionType } from "@prisma/client";
-import { NotFoundException } from "../exception/not-found";
-import { ErrorCode } from "../exception/base";
+import { AppointmentStatus } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 import { calendar } from "../utils/oauthUtils";
 
@@ -30,7 +28,7 @@ export class ConsultationController {
   //   }
   // }
 
-  async getDoctorAvailability(req: Request, res: Response, next: NextFunction) {    
+  static async getDoctorAvailability(req: Request, res: Response, next: NextFunction) {    
     try {
       const availability = await DoctorService.getDoctorAvailability(req.params.doctorId);
       res.json(availability);

@@ -31,6 +31,8 @@ uploads/*
 
 # But do not ignore the 'voicenotes' directory inside 'uploads'
 !uploads/voicenotes/
+!uploads/docs/
 
 # Ensure files inside 'voicenots' are ignored (optional)
 uploads/voicenotes/*
+uploads/docs/*

@@ -1,58 +1,166 @@
-import { SessionType } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
+import { ErrorCode } from "../exception/base";
+import { BookingData, GOPDBookingData } from "../models/consultation.model";
+import { NotificationType, SessionType } from "@prisma/client";
+import { NotificationService } from "./notification.service";
+import { checkIfUserExists } from "../utils/checkIfUserExists";
+import { NotFoundException } from "../exception/not-found";
 
-interface AppointmentData {
-  type: "Urgent" | "NonUrgent";
-  patientName: string;
-  patientEmail: string;
-  symptoms: [string];
-  consultationType: SessionType;
-  doctorId: string;
-  date: string;
-  time: string;
-}
+export class ConsultationService {
 
-export class AppointmentService {
-  async getAppointments() {
+  static async getAllAppointments() {
     const appointments = await prisma.consultation.findMany();
     return appointments;
   }
 
-  // async createAppointment(appointmentData: AppointmentData) {
-  //   const {
-  //     type,
-  //     patientName,
-  //     patientEmail,
-  //     symptoms,
-  //     consultationType,
-  //     doctorId,
-  //     date,
-  //     time,
-  //   } = appointmentData;
 
-  //   // Create appointment
-  //   const newAppointment = await prisma.consultation.create({
-  //     data: {
-  //       consultationType,
-  //       doctorId,
-  //       date,
-  //       time,
-  //     },
-  //   });
+  static async bookGOPDConsultation(data: GOPDBookingData) {
+    const { doctorId, patientId } = data;
 
-  //   return {
-  //     appointment: newAppointment,
-  //   };
-  // }
+    // Check if doctor exists
+    const doctorExists = await checkIfUserExists(doctorId);
+    if (!doctorExists) {
+      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+    }
 
-  async getUpcomingAppointment(userId: string) {
+    // Check if patient exists
+    const patientExists = await checkIfUserExists(patientId);
+    if (!patientExists) {
+      throw new NotFoundException("Patient not found", ErrorCode.NOTFOUND);
+    }
+
+    const startTime = new Date(); // Current time
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+
+    // Create appointment in database
+    const appointment = await prisma.consultation.create({
+      data: {
+        patientId: patientId,
+        doctorId: doctorId,
+        startTime: startTime,
+        endTime: endTime,
+        consultationType: SessionType.VIDEO
+      },
+    });
+
+    await NotificationService.createNotification(
+      appointment.patientId,
+      "New Appointment",
+      `Your aapointment has recorded, kindly wait for doctor's approval`,
+      NotificationType.APPOINTMENT_SCHEDULED);
+
+    await NotificationService.createNotification(
+      appointment.doctorId,
+      "New Appointment",
+      "You have a new appointment scheduled.",
+      NotificationType.APPOINTMENT_SCHEDULED
+    );
+
+    return appointment;
+  }
+
+  static async bookConsultation(data: BookingData) {
+    const { doctorId, patientId, date, time } = data;
+
+    // Check if doctor exists
+    const doctorExists = await checkIfUserExists(doctorId);
+    if (!doctorExists) {
+      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+    }
+
+    // Check if patient exists
+    const patientExists = await checkIfUserExists(patientId);
+    if (!patientExists) {
+      throw new NotFoundException("Patient not found", ErrorCode.NOTFOUND);
+    }
+
+    const timeIn24Hr = new Date(`${date} ${time}`).toISOString();
+
+    const startTime = new Date(timeIn24Hr);
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+
+    // Create appointment in database
+    const appointment = await prisma.consultation.create({
+      data: {
+        patientId: patientId,
+        doctorId: doctorId,
+        startTime: startTime,
+        endTime: endTime,
+        consultationType: SessionType.VIDEO
+      },
+    });
+
+    await NotificationService.createNotification(
+      appointment.patientId,
+      "New Appointment",
+      `Your aapointment has recorded, kindly wait for doctor's approval`,
+      NotificationType.APPOINTMENT_SCHEDULED);
+
+    await NotificationService.createNotification(
+      appointment.doctorId,
+      "New Appointment",
+      "You have a new appointment scheduled.",
+      NotificationType.APPOINTMENT_SCHEDULED
+    );
+
+    return appointment;
+  }
+
+  static async getConsultationById(consultationId: string) {
+    return await prisma.consultation.findUnique({
+      where: { id: consultationId },
+    });
+  }
+
+  static async getDoctorConsultation(doctorId: string) {
+    return await prisma.consultation.findMany({
+      where: { doctorId: doctorId },
+      include: {
+        patient: true,
+      },
+    });
+  }
+
+  static async reviewDoctor(doctorId: string, patientId: string, rating: number, comment: string) {
+
+    // Check if doctor exists
+    const doctorExists = await checkIfUserExists(doctorId);
+    if (!doctorExists) {
+      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+    }
+
+    // Check if patient exists
+    const patientExists = await checkIfUserExists(patientId);
+    if (!patientExists) {
+      throw new NotFoundException("Patient not found", ErrorCode.NOTFOUND);
+    }
+
+    return await prisma.review.create({
+      data: { doctorId, patientId, rating, comment },
+    });
+  }
+
+  static async getDoctorReviews(doctorId: string) {
+    // Check if doctor exists
+    const doctorExists = await checkIfUserExists(doctorId);
+    if (!doctorExists) {
+      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+    }
+
+    return await prisma.review.aggregate({
+      where: { doctorId },
+      _avg: { rating: true },
+    });
+  }
+
+  static async getUpcomingAppointment(userId: string) {
     const upcomingAppointment = await prisma.consultation.findFirst({
       where: {
         doctorId: userId,
       },
       orderBy: [
-        { startTime: "asc" }, // Order by nearest date
-        { endTime: "asc" }, // If same date, order by nearest time
+        { startTime: "asc" },
+        { endTime: "asc" },
       ],
       include: {
         doctor: true,

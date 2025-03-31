@@ -13,7 +13,8 @@ class PrismaSingleton {
           user: {
             password: true,
           }
-        }
+        },
+        errorFormat: "minimal"
       });
     }
     return PrismaSingleton.instance;

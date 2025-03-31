@@ -135,6 +135,7 @@ model DoctorProfile {
   balance               Float                @default(0)
   googleCalendarId      String?
   googleRefreshToken    String?
+  profilePicture    String?
 
   specialtyId String?
   specialty   Specialty? @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
@@ -393,13 +394,13 @@ model Notification {
 model Review {
   id        String   @id @default(uuid())
   doctorId  String
-  userId    String
+  patientId    String
   rating    Int
   comment   String?
   createdAt DateTime @default(now())
 
   doctor  User @relation(fields: [doctorId], references: [id], name: "DoctorReviews")
-  patient User @relation(fields: [userId], references: [id], name: "PatientReviews")
+  patient User @relation(fields: [patientId], references: [id], name: "PatientReviews")
 }
 
 

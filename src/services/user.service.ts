@@ -18,10 +18,7 @@ export class UserService {
 
   static async getUpcomingConsultations(userId: string) {
 
-    const userExists = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
+    const userExists = await checkIfUserExists(userId);
     if (!userExists) {
       throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
     }
@@ -43,13 +40,13 @@ export class UserService {
 
   static async sendMessage(data: ChatMessageData) {
 
-    const senderExists = await checkIfUserExists(data.senderId, data.senderType);
+    const senderExists = await checkIfUserExists(data.senderId);
     if (!senderExists) {
       throw new NotFoundException("Sender not found", ErrorCode.NOTFOUND);
     }
 
     // Check if receiver exists
-    const receiverExists = await checkIfUserExists(data.receiverId, data.receiverType);
+    const receiverExists = await checkIfUserExists(data.receiverId);
     if (!receiverExists) {
       throw new NotFoundException("Receiver not found", ErrorCode.NOTFOUND);
     }

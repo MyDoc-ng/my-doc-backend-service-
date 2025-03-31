@@ -9,8 +9,9 @@ import { upload } from '../middleware/upload';
 import { UserController } from '../controller/user.controller';
 import { appointmentSchema, gopdSchema } from '../schema/appointment.schema';
 import { NotificationController } from '../controller/notification.controller';
-import { chatSchema } from '../schema/chatValidation.schema';
+import { chatSchema } from '../schema/chat.schema';
 import { uploadVoice } from '../middleware/uploadVoice';
+import { reviewDoctorSchema } from '../schema/doctor.schema';
 
 const router: Router = express.Router();
 
@@ -42,9 +43,9 @@ router.get("/doctors/specializations", [authenticate], UserController.getSpecial
 router.get("/doctors/:doctorId", [authenticate], UserController.getDoctorById);
 
 //! Reviews Endpoints
-router.post('/reviews', [authenticate], UserController.reviewDoctor);
+router.post('/reviews', authenticate, validateData(reviewDoctorSchema), UserController.reviewDoctor);
 router.get("/reviews/:doctorId", [authenticate], UserController.getDoctorReviews);
-  
+
 
 //! Notification Endpoints
 router.get("/notifications", authenticate, NotificationController.getUserNotifications);

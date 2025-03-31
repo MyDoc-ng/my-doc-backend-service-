@@ -2,10 +2,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
-import { BaseHttpException, ErrorCode } from "../exception/base";
+import { ErrorCode } from "../exception/base";
 import { NotFoundException } from "../exception/not-found";
 import {
   LoginResponse,
+  RegisterDoctorData,
   RegisterUserData,
   UserBioData,
   UserPhotoData,
@@ -15,7 +16,7 @@ import { generateVerificationToken } from "../utils/generate_verify_token";
 import { EmailService } from "./email.service";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 import { EmailTemplates } from "../emails/emailTemplates";
-import { User } from "@prisma/client";
+import { User, UserTypes } from "@prisma/client";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export class AuthService {
@@ -52,6 +53,37 @@ export class AuthService {
       email: user.email,
       createdAt: user.createdAt,
     };
+  }
+
+  static async registerDoctors(data: RegisterDoctorData) {
+    const {
+      name,
+      email,
+      password
+    } = data;
+
+    const doctorExists = await checkIfUserExists(data.email);
+
+    if (doctorExists) {
+      throw new BadRequestException(
+        "Doctor with this email already exists",
+        ErrorCode.CONFLICT
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+
+    const newDoctor = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: UserTypes.DOCTOR,
+      },
+    });
+
+    return newDoctor;
   }
 
   static async submitBiodata(userData: UserBioData): Promise<any> {
@@ -100,8 +132,9 @@ export class AuthService {
     email: string,
     password: string
   ): Promise<LoginResponse> {
-    const user = await prisma.user.findFirst({
+    const user = await prisma.user.findUnique({
       where: { email },
+      select: { id: true, name: true, email: true, password: true, patientProfile: true },
     });
 
     if (!user) {
@@ -132,8 +165,9 @@ export class AuthService {
       id: user.id,
       email: user.email,
       name: user.name,
-      refreshToken,
-      accessToken,
+      photo: user.patientProfile?.profilePicture,
+      accessToken: accessToken,
+      refreshToken: refreshToken,
     };
   }
 
@@ -165,15 +199,15 @@ export class AuthService {
       idToken,
       audience: process.env.GOOGLE_BACKEND_ID as string,
     });
-  
+
     const payload = ticket.getPayload();
-  
+
     if (!payload || Date.now() / 1000 > payload.exp) {
       throw new BadRequestException("Invalid Google token", ErrorCode.BADREQUEST);
     }
-  
+
     const { sub: googleId, email, name, picture } = payload;
-  
+
     // Start a Prisma transaction
     const result = await prisma.$transaction(async (tx) => {
       let user = await tx.user.upsert({
@@ -190,13 +224,13 @@ export class AuthService {
           verificationToken: generateVerificationToken(),
         },
       });
-  
+
       // Update profile picture in the PatientProfile table
       await tx.patientProfile.updateMany({
         where: { userId: user.id },
         data: { profilePicture: picture || "" },
       });
-  
+
       // Store refresh token in database
       const refreshToken = generateRefreshToken(user);
       await tx.refreshToken.create({
@@ -206,13 +240,13 @@ export class AuthService {
           expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
         },
       });
-  
+
       return { user, refreshToken };
     });
-  
+
     // Generate access token
     const accessToken = generateAuthToken(result.user);
-  
+
     // Send verification email if email is not verified
     if (!result.user.emailVerified) {
       try {
@@ -225,7 +259,7 @@ export class AuthService {
         throw error;
       }
     }
-  
+
     return {
       accessToken,
       refreshToken: result.refreshToken,
@@ -233,11 +267,11 @@ export class AuthService {
         id: result.user.id,
         name: result.user.name,
         email: result.user.email,
-        photo: picture, 
+        photo: picture,
       },
     };
   }
-  
+
 
   static async refreshAccessToken(refreshToken: string) {
     if (!refreshToken)
@@ -323,7 +357,7 @@ export class AuthService {
         to: email,
         subject: "Verify Your Email Address",
         templateName: EmailTemplates.VERIFICATION,
-        replacements: {name, verificationLink }
+        replacements: { name, verificationLink }
       });
     } catch (error) {
       throw new BadRequestException("Failed to send verification email", ErrorCode.BADREQUEST);
@@ -331,13 +365,13 @@ export class AuthService {
   }
 }
 
-function generateAuthToken(user: User) {
+function generateAuthToken(user: any) {
   return jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET as string, {
     expiresIn: "10h",
   });
 }
 
-function generateRefreshToken(user: User) {
+function generateRefreshToken(user: any) {
   return jwt.sign({ id: user.id, role: user.role }, process.env.REFRESH_SECRET as string, {
     expiresIn: "7d",
   });

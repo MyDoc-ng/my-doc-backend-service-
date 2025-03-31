@@ -2,7 +2,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { prisma } from "../prisma/prisma";
 import { z } from "zod";
 import { Server } from "http";
-import { chatSchema } from "../schema/chatValidation.schema";
+import { chatSchema } from "../schema/chat.schema";
 import logger from "../logger";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 

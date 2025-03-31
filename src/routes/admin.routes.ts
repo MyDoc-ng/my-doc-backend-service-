@@ -3,7 +3,7 @@ import logger from '../logger';
 import { authenticate } from '../middleware/authMiddleware';
 import { AdminController } from '../controller/admin.controller';
 import { validateData } from '../middleware/validationMiddleware';
-import { DoctorSignupSchema } from '../schema/doctorSignup.schema';
+import { doctorLoginSchema, doctorSignupSchema } from '../schema/doctor.schema';
 
 const router: Router = express.Router();
 
@@ -27,9 +27,8 @@ router.get('/users', authenticate, AdminController.getUsers);
 // router.get('/analytics/appointments', authenticate, AdminController.getAppointmentAnalytics);
 
 //! Auth Enpoints
-router.post('/register', validateData(DoctorSignupSchema), AdminController.store);
-router.post('/login', validateData(DoctorSignupSchema), AdminController.store);
-
-
+// @ts-ignore
+router.post('/register', validateData(doctorSignupSchema), AdminController.store);
+router.post('/login', validateData(doctorLoginSchema), AdminController.store);
 
 export default router; 

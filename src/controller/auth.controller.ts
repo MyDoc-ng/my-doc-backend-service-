@@ -43,10 +43,11 @@ export class AuthController {
   ): Promise<void> {
     try {
       const { email, password }: { email: string; password: string } = req.body;
+      
       const result = await AuthService.loginUser(email, password);
 
       if (result.accessToken) {
-        res.json(result);
+        res.status(200).json(result);
       } else {
         res.status(401).json({ message: "Invalid credentials" });
       }

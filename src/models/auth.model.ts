@@ -6,6 +6,11 @@ export interface RegisterUserData {
   email: string;
   password: string;
 }
+export interface RegisterDoctorData {
+  name: string;
+  email: string;
+  password: string;
+}
 
 export interface UserPhotoData {
   userId: string;
@@ -19,6 +24,7 @@ export interface LoginResponse {
   name: string;
   email: string;
   id: string;
+  photo: string | null | undefined;
 }
 
 // Type for Biodata Submission

@@ -8,6 +8,10 @@ import {
 } from "../utils/oauthUtils";
 import { prisma } from "../prisma/prisma";
 import logger from "../logger";
+import { AuthService } from "../services/auth.service";
+import { BadRequestException } from "../exception/bad-request";
+import { ErrorCode } from "../exception/base";
+import { UnauthorizedException } from "../exception/unauthorized";
 
 export class DoctorController {
   static async index(req: Request, res: Response, next: NextFunction) {
@@ -17,9 +21,9 @@ export class DoctorController {
       logger.debug('Doctors fetched successfully', { count: doctors.length });
       res.json(doctors);
     } catch (error: any) {
-      logger.error('Error fetching doctors', { 
+      logger.error('Error fetching doctors', {
         error: error.message,
-        stack: error.stack 
+        stack: error.stack
       });
       next(error);
     }
@@ -29,10 +33,10 @@ export class DoctorController {
     try {
       const { id } = req.params;
       logger.info('Fetching doctor by ID', { doctorId: id });
-      
+
       const doctor = await DoctorService.getDoctorById(id);
       logger.debug('Doctor fetched successfully', { doctorId: id });
-      
+
       res.json(doctor);
     } catch (error: any) {
       logger.error('Error fetching doctor by ID', {
@@ -49,7 +53,7 @@ export class DoctorController {
       logger.info('Fetching general practitioners');
       const doctors = await DoctorService.getGeneralPractitioners();
       logger.debug('General practitioners fetched successfully', { count: doctors.length });
-      
+
       res.json(doctors);
     } catch (error: any) {
       logger.error('Error fetching general practitioners', {
@@ -78,19 +82,13 @@ export class DoctorController {
 
   static async store(req: Request, res: Response, next: NextFunction) {
     try {
-      logger.info('Creating new doctor', { 
-        userData: { ...req.body, password: undefined } // Log user data without sensitive information
-      });
-      
-      const doctor = await DoctorService.createDoctors(req.body);
+      logger.info('Creating new doctor');
+
+      const doctor = await AuthService.registerDoctors(req.body);
       logger.debug('Doctor created successfully', { doctorId: doctor.id });
 
       res.status(201).json({ message: 'Doctor created successfully', doctor });
     } catch (error: any) {
-      logger.error('Error creating doctor', {
-        error: error.message,
-        stack: error.stack
-      });
       next(error);
     }
   }
@@ -112,7 +110,7 @@ export class DoctorController {
   //       specialization,
   //       experienceYears 
   //     });
-      
+
   //     const doctor = await DoctorService.createDoctors({
   //       experience,
   //       ratings,
@@ -125,7 +123,7 @@ export class DoctorController {
   //       doctorId: doctor.id,
   //       userId: doctor.userId 
   //     });
-      
+
   //     res.json(doctor);
   //   } catch (error: any) {
   //     logger.error('Error creating doctor', {
@@ -143,9 +141,9 @@ export class DoctorController {
     const scopes = ["https://www.googleapis.com/auth/calendar"];
 
     try {
-      logger.info('Initiating Google OAuth2 flow', { 
+      logger.info('Initiating Google OAuth2 flow', {
         doctorId,
-        redirectUri: doctorRedirectUri 
+        redirectUri: doctorRedirectUri
       });
 
       const authUrl = await initiateOAuth({
@@ -158,10 +156,10 @@ export class DoctorController {
       logger.debug('OAuth2 URL generated successfully', { doctorId });
       res.json({ authUrl });
     } catch (error: any) {
-      logger.error('Error initiating OAuth', { 
+      logger.error('Error initiating OAuth', {
         doctorId,
         error: error.message,
-        stack: error.stack 
+        stack: error.stack
       });
       next(error);
     }
@@ -176,10 +174,10 @@ export class DoctorController {
       logger.info('Processing OAuth2 callback', { doctorId });
 
       const { tokens, calendarId } = await handleOAuthCallback(code);
-      logger.debug('OAuth2 tokens received', { 
+      logger.debug('OAuth2 tokens received', {
         doctorId,
         hasTokens: !!tokens,
-        hasCalendarId: !!calendarId 
+        hasCalendarId: !!calendarId
       });
 
       await saveTokensAndCalendarId({
@@ -197,6 +195,47 @@ export class DoctorController {
         error: error.message,
         stack: error.stack
       });
+      next(error);
+    }
+  }
+
+  static async uploadCertification(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.files) {
+        throw new BadRequestException("No files uploaded!", ErrorCode.BADREQUEST);
+      }
+
+      const doctorId = req.body.doctorId;
+
+      if (!doctorId) {
+        throw new UnauthorizedException("Unauthorized access", ErrorCode.UNAUTHORIZED);
+      }
+
+      const files = req.files as {
+        cv?: Express.Multer.File[];
+        medicalLicense?: Express.Multer.File[];
+        reference?: Express.Multer.File[];
+      };
+
+      const serverUrl = `${req.protocol}://${req.get("host")}`;
+
+      const cvPath = `${serverUrl}/${files.cv?.[0]?.path.replace(/\\/g, "/")}`;
+      const medicalLicensePath = `${serverUrl}/${files.medicalLicense?.[0]?.path.replace(/\\/g, "/")}`;
+      const referencePath = `${serverUrl}/${files.reference?.[0]?.path.replace(/\\/g, "/")}`;
+
+      const fileUrls = {
+        cv: cvPath || null,
+        medicalLicense: medicalLicensePath || null,
+        reference: referencePath || null,
+      };
+
+      const updatedDoctor = await DoctorService.saveCertificationFiles(doctorId, fileUrls);
+
+      res.status(201).json({
+        message: "Files uploaded and doctor profile updated successfully",
+        doctor: updatedDoctor,
+      });
+    } catch (error) {
       next(error);
     }
   }

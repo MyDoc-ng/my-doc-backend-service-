@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { UserService } from '../services/user.service';
 import logger from '../logger';
 import { DoctorService } from '../services/doctor.service';
-import { ConsultationService } from '../services/consultation.service';
+import { ConsultationService } from '../services/appointment.service';
 import { ChatService } from '../services/chat.service';
 import { BadRequestException } from '../exception/bad-request';
 import { ErrorCode } from '../exception/base';
@@ -37,10 +37,7 @@ export class UserController {
 
       res.status(200).json(doctors);
     } catch (error: any) {
-      logger.error('Error fetching general practitioners', {
-        error: error.message,
-        stack: error.stack
-      });
+     
       next(error);
     }
   }
@@ -95,7 +92,6 @@ export class UserController {
       res.status(200).json(consultation);
     } catch (error: any) {
       next(error)
-      res.status(500).json({ message: error.message });
     }
   }
 
@@ -146,14 +142,10 @@ export class UserController {
   }
 
   static async reviewDoctor(req: Request, res: Response, next: NextFunction) {
-    const { doctorId, userId, rating, comment } = req.body;
-
-    if (!rating || rating < 1 || rating > 5) {
-      res.status(400).json({ message: "Invalid rating. Must be between 1 and 5." });
-    }
+    const { doctorId, patientId, rating, comment } = req.body;
 
     try {
-      const review = ConsultationService.reviewDoctor(doctorId, userId, rating, comment);
+      const review = await ConsultationService.reviewDoctor(doctorId, patientId, rating, comment);
 
       res.status(201).json({ message: "Review submitted successfully!", review });
     } catch (error) {
@@ -165,7 +157,7 @@ export class UserController {
     const { doctorId } = req.params;
 
     try {
-      const reviews = ConsultationService.getDoctorReviews(doctorId);
+      const reviews = await ConsultationService.getDoctorReviews(doctorId);
 
       res.status(200).json(reviews);
     } catch (error) {

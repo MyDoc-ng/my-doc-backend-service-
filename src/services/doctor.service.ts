@@ -1,9 +1,8 @@
-import { SessionType, Doctor, Prisma, AppointmentStatus, UserTypes } from "@prisma/client";
+import { SessionType, AppointmentStatus, UserTypes, User } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 import { NotFoundException } from "../exception/not-found";
 import { ErrorCode } from "../exception/base";
-import { google } from "googleapis";
-import { googleConfig, oauth2Client } from "../utils/oauthUtils";
+import { oauth2Client } from "../utils/oauthUtils";
 import logger from "../logger";
 
 interface FilterDoctor {
@@ -32,14 +31,14 @@ interface DoctorProfile {
 export class DoctorService {
 
   static async getAllDoctors() {
-    return await prisma.doctor.findMany();
+    return await prisma.user.findMany({ where: { role: UserTypes.DOCTOR } });
   }
 
   static async getDoctorById(doctorId: string) {
-    const doctor = await prisma.doctor.findUnique({
+    const doctor = await prisma.user.findUnique({
       where: { id: doctorId },
       include: {
-        specialty: true,
+        doctorProfile: true,
       },
     });
 
@@ -49,10 +48,10 @@ export class DoctorService {
     }
 
     const patientsTreated = await prisma.consultation.groupBy({
-      by: ["patientId"], 
+      by: ["patientId"],
       where: {
         doctorId: doctorId,
-        status: AppointmentStatus.COMPLETED, 
+        status: AppointmentStatus.COMPLETED,
       },
     });
 
@@ -62,81 +61,54 @@ export class DoctorService {
     }
   }
 
-  static async createDoctors(data: DoctorProfile) {
-    const {
-      name,
-      email,
-      experience,
-      location,
-      consultationTypes,
-      consultationFees,
-      homeVisitCharge,
-      videoConsultationFee,
-      clinicConsultationFee,
-      ratings,
-      bio,
-      specialtyId,
-    } = data;
 
-    const existingDoctor = await prisma.doctor.findFirst({
-      where: { email },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        password: true,
-      },
-    });
-
-    if (existingDoctor) {
-      throw new Error('Doctor with this email already exists');
-    }
-
-    const newDoctor = await prisma.doctor.create({
-      data: {
-        name,
-        email,
-        consultationTypes,
-        location,
-        consultationFees,
-        homeVisitCharge,
-        videoConsultationFee,
-        clinicConsultationFee,
-        experience,
-        ratings,
-        bio,
-        specialtyId,
-      },
-    });
-
-    return newDoctor;
-  }
 
   static async getTopDoctors() {
-    const doctors = await prisma.doctor.findMany({
-      orderBy: { ratings: "desc" },
+    const ratings = await prisma.review.groupBy({
+      by: ["doctorId"],
+      _avg: { rating: true }, 
+      orderBy: { _avg: { rating: "desc" } },
       take: 5,
     });
-
-    return doctors;
-  }
-
-  static async findDoctors(filters: FilterDoctor): Promise<Doctor[]> {
-    return prisma.doctor.findMany({
-      where: {
-        specialtyId: filters.specialization,
-        ratings: { gte: filters.minRating },
-        location: { contains: filters.location },
-        consultationTypes: { has: filters.consultationType },
+  
+    const doctorIds = ratings.map(r => r.doctorId);
+  
+    const doctors = await prisma.doctorProfile.findMany({
+      where: { id: { in: doctorIds } },
+      include: {
+        user: true, 
+        specialty: true, 
       },
     });
+  
+    const doctorMap = Object.fromEntries(
+      ratings.map(r => [r.doctorId, r._avg.rating])
+    );
+    const topDoctors = doctors.map(doctor => ({
+      ...doctor,
+      avgRating: doctorMap[doctor.id] || 0, // Default to 0 if no rating
+    }));
+  
+    return topDoctors;
   }
+  
+
+  // static async findDoctors(filters: FilterDoctor): Promise<User[]> {
+  //   return prisma.doctorProfile.findMany({
+  //     where: {
+  //       specialtyId: filters.specialization,
+  //       // ratings: { gte: filters.minRating },
+  //       location: { contains: filters.location },
+  //       consultationTypes: { has: filters.consultationType },
+  //     },
+  //   });
+  // }
 
   static async getDoctorAvailability(
     doctorId: string
   ): Promise<any> {
-    const doctor = await prisma.doctor.findUnique({
-      where: { id: doctorId },
+    const doctor = await prisma.doctorProfile.findUnique({
+      where: { userId: doctorId },
       select: { availability: true }
     });
 
@@ -153,30 +125,32 @@ export class DoctorService {
 
   // Utility function to get doctor's calendar details
   static async getDoctorCalendarDetails(doctorId: string) {
-    const doctor = await prisma.doctor.findUnique({
+    const doctor = await prisma.user.findUnique({
       where: { id: doctorId },
+      include: { doctorProfile: true }
     });
 
-    if (!doctor || !doctor.googleRefreshToken || !doctor.googleCalendarId) {
+    if (!doctor || !doctor.doctorProfile!.googleRefreshToken || !doctor.doctorProfile!.googleCalendarId) {
       throw new Error('Doctor not found or Google Calendar not connected.');
     }
 
     oauth2Client.setCredentials({
-      refresh_token: doctor.googleRefreshToken,
+      refresh_token: doctor.doctorProfile!.googleRefreshToken,
     });
 
-    return { calendarId: doctor.googleCalendarId, oauth2Client };
+    return { calendarId: doctor.doctorProfile!.googleCalendarId, oauth2Client };
   }
 
   static async getGeneralPractitioners() {
-    return await prisma.doctor.findMany({
+    return await prisma.doctorProfile.findMany({
       where: {
         specialty: {
           name: "General Practitioner",
         },
       },
       include: {
-        specialty: true, // Include specialty details if needed
+        user: true,
+        specialty: true,
       },
     });
   }
@@ -189,9 +163,19 @@ export class DoctorService {
         },
       },
       include: {
-        doctors: true,
+        DoctorProfile: true,
       },
     });
   }
 
+  static async saveCertificationFiles(doctorId: string, fileUrls: { cv: string | null; medicalLicense: string | null; reference: string | null }) {
+    return await prisma.doctorProfile.update({
+      where: { userId: doctorId },
+      data: {
+        cv: fileUrls.cv,
+        medicalLicense: fileUrls.medicalLicense,
+        reference: fileUrls.reference,
+      },
+    });
+  }
 }
