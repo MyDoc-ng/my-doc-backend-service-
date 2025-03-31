@@ -4,11 +4,12 @@ import { NotFoundException } from "../exception/not-found";
 import { prisma } from "../prisma/prisma";
 import { ChatMessageData } from "../models/chatMessage.model";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
+import { UpdateProfileData } from "../models/auth.model";
 
 export class UserService {
 
   static async getUsers() {
-    const users = await prisma.user.findMany();
+    const users = await prisma.user.findMany({ where: { role: UserTypes.PATIENT } });
     return users;
   }
 
@@ -58,9 +59,9 @@ export class UserService {
 
   }
 
-  static async getUserMessages(userId: string) {
+  static async getMessages(userId: string) {
 
-    const userExists = await checkIfUserExists(userId, UserTypes.USER);
+    const userExists = await checkIfUserExists(userId);
     if (!userExists) {
       throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
     }
@@ -68,13 +69,63 @@ export class UserService {
     return await prisma.chatMessage.findMany({
       where: {
         OR: [
-          { senderId: userId, senderType: UserTypes.USER },
-          { receiverId: userId, receiverType: UserTypes.USER },
+          { senderId: userId },
+          { receiverId: userId },
         ],
       },
       orderBy: { createdAt: "asc" },
     });
 
+  }
+
+  static async updateProfile(profileData: UpdateProfileData): Promise<any> {
+    const {
+      userId,
+      dateOfBirth,
+      gender,
+      phoneNumber,
+      name,
+      email
+    } = profileData;
+
+    const userExists = await checkIfUserExists(userId);
+
+    if (!userExists) {
+      throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      let user = await tx.user.update({
+        where: { id: userId },
+        data: {
+          name: name,
+          email: email,
+        },
+        include: { patientProfile: true }
+      });
+
+      // Update profile picture in the PatientProfile table
+      await tx.patientProfile.updateMany({
+        where: { userId: user.id },
+        data: {
+          dateOfBirth: new Date(dateOfBirth),
+          gender: gender,
+          phoneNumber: phoneNumber
+        },
+      });
+
+      return { user };
+    });
+
+    return {
+      id: result.user.id,
+      name: result.user.name,
+      email: result.user.email,
+      gender: result.user.patientProfile?.gender,
+      dateOfBirth: result.user.patientProfile?.dateOfBirth,
+      phoneNumber: result.user.patientProfile?.phoneNumber,
+      createdAt: result.user.createdAt,
+    };
   }
 
 }

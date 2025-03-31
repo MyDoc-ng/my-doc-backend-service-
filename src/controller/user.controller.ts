@@ -6,7 +6,6 @@ import { ConsultationService } from '../services/appointment.service';
 import { ChatService } from '../services/chat.service';
 import { BadRequestException } from '../exception/bad-request';
 import { ErrorCode } from '../exception/base';
-import { computeDoctorAvailability } from '../utils/computeDoctorAvailability';
 
 
 export class UserController {
@@ -14,9 +13,8 @@ export class UserController {
     try {
       const users = await UserService.getUsers();
 
-      res.json(users);
+      res.status(200).json(users);
     } catch (error: any) {
-
       next(error)
     }
   }
@@ -126,11 +124,11 @@ export class UserController {
     }
   }
 
-  static async getUserMessages(req: Request, res: Response, next: NextFunction) {
+  static async getMessages(req: Request, res: Response, next: NextFunction) {
     const { userId } = req.params;
 
     try {
-      const messages = await ChatService.getUserMessages(userId);
+      const messages = await ChatService.getMessages(userId);
       res.json({ success: true, messages });
     } catch (error: any) {
       next(error)
@@ -175,6 +173,16 @@ export class UserController {
 
     } catch (error) {
       next(error)
+    }
+  }
+
+  // Register a new user
+  static async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await UserService.updateProfile(req.body);
+      res.status(201).json(user);
+    } catch (error: any) {
+      next(error);
     }
   }
 

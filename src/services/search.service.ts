@@ -2,23 +2,40 @@ import { prisma } from "../prisma/prisma";
 
 export class SearchService {
   async searchKeyWords(keyword: string) {
-    
-    const doctors = await prisma.doctor.findMany({
-      where: {
-        name: {
-          search: keyword,
-        }
-      },
-    });
-      // Dummy drugs data (Replace with a real drug model if you have one)
-      const drugs = [
-        { id: "101", name: "Paracetamol", price: "500", description: "Pain reliever" },
-      ].filter((drug) => drug.name.toLowerCase().includes(keyword.toLowerCase()));
+    const [doctors, specialties] = await Promise.all([
+      prisma.user.findMany({
+        where: {
+          OR: [
+            { 
+              name: {
+                contains: keyword,
+                mode: "insensitive",
+              }
+            },
+            {
+              email: {
+                contains: keyword,
+                mode: "insensitive",
+              }
+            }
+          ]
+        },
+      }),
 
-      
+      prisma.specialty.findMany({
+        where: {
+          name: {
+            contains: keyword,
+            mode: "insensitive",
+          },
+        },
+      })
+    ]);
+
     return {
       doctors,
-      drugs
+      specialties,
     };
   }
+
 }

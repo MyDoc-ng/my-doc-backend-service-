@@ -36,7 +36,7 @@ export class ChatService {
 
     }
 
-    static async getUserMessages(userId: string) {
+    static async getMessages(userId: string) {
 
         const userExists = await checkIfUserExists(userId);
         if (!userExists) {

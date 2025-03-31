@@ -35,3 +35,11 @@ export interface UserBioData {
   phoneNumber: string;
   address: string;
 }
+export interface UpdateProfileData {
+  userId: string;
+  dateOfBirth: string; // Ensure it is a valid date string
+  gender: Gender; 
+  phoneNumber: string;
+  name: string;
+  email: string;
+}

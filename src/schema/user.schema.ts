@@ -29,13 +29,6 @@ export const userBiodataSchema = z.object({
   gender: GenderEnum,
   phoneNumber: z.string().regex(/^\+?\d{10,15}$/, "Invalid phone number"),
   address: z.string().min(5, "Address must be at least 5 characters"),
-  // medicalHistory: z
-  //   .object({
-  //     pastSurgeries: z.boolean(),
-  //     currentMeds: z.boolean(),
-  //     drugAllergies: z.boolean(),
-  //   })
-  //   .optional(),
 });
 
 // Define the Zod schema for login
@@ -51,4 +44,17 @@ export const UserPhotoSchema = z.object({
     originalname: z.string().nonempty("File name cannot be empty"),
   }),
   userId: z.string().uuid("Invalid user ID"),
+});
+
+export const updateProfileSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  dateOfBirth: z
+    .string()
+    .regex(
+      /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/,
+      "Invalid date format (YYYY-MM-DD)"
+    ),
+  gender: GenderEnum,
+  phoneNumber: z.string().regex(/^\+?\d{10,15}$/, "Invalid phone number"),
 });

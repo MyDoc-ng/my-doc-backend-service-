@@ -12,7 +12,7 @@ export class SearchController{
         try {
            const results = await searchService.searchKeyWords(query); 
 
-           res.json(results);
+           res.status(200).json(results);
 
         } catch (error) {
             next(error)

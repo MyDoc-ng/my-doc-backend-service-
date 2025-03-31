@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import { validateData } from '../middleware/validationMiddleware';
 import logger from '../logger';
-import { userBiodataSchema, userLoginSchema, userRegisterSchema } from '../schema/user.schema';
+import { updateProfileSchema, userBiodataSchema, userLoginSchema, userRegisterSchema } from '../schema/user.schema';
 import { AuthController } from '../controller/auth.controller';
 import { authenticate } from '../middleware/authMiddleware';
 import { DoctorController } from '../controller/doctor.controller';
@@ -50,16 +50,17 @@ router.get("/reviews/:doctorId", [authenticate], UserController.getDoctorReviews
 
 
 //! Notification Endpoints
-router.get("/notifications", authenticate, NotificationController.getUserNotifications);
-router.patch("/notifications/:id/read", authenticate, NotificationController.markUserNotificationAsRead);
-router.patch("/notifications/read-all", authenticate, NotificationController.userMarkAllNotificationsAsRead);
+router.get("/notifications", authenticate, NotificationController.getNotifications);
+router.patch("/notifications/:id/read", authenticate, NotificationController.markNotificationAsRead);
+router.patch("/notifications/read-all", authenticate, NotificationController.markAllNotificationsAsRead);
 
 //! Chat Endpoints
 router.post("/chats/send", authenticate, validateData(chatSchema), UserController.sendMessage);
-router.get("/chats/:userId", authenticate, UserController.getUserMessages);
+router.get("/chats/:userId", authenticate, UserController.getMessages);
 router.post("/chats/voice", authenticate, uploadVoice.single("voice"), UserController.sendVoiceMessage);
 
-
+// ! Profile Endpoints
+router.put("/profile/edit", authenticate, validateData(updateProfileSchema), UserController.updateProfile);
 
 
 
