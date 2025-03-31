@@ -10,13 +10,13 @@ export class ChatService {
 
     static async sendMessage(data: ChatMessageData) {
 
-        const senderExists = await checkIfUserExists(data.senderId, data.senderType);
+        const senderExists = await checkIfUserExists(data.senderId);
         if (!senderExists) {
             throw new NotFoundException("Sender not found", ErrorCode.NOTFOUND);
         }
 
         // Check if receiver exists
-        const receiverExists = await checkIfUserExists(data.receiverId, data.receiverType);
+        const receiverExists = await checkIfUserExists(data.receiverId);
         if (!receiverExists) {
             throw new NotFoundException("Receiver not found", ErrorCode.NOTFOUND);
         }
@@ -38,7 +38,7 @@ export class ChatService {
 
     static async getUserMessages(userId: string) {
 
-        const userExists = await checkIfUserExists(userId, UserTypes.USER);
+        const userExists = await checkIfUserExists(userId);
         if (!userExists) {
             throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
         }
@@ -46,8 +46,8 @@ export class ChatService {
         return await prisma.chatMessage.findMany({
             where: {
                 OR: [
-                    { senderId: userId, senderType: UserTypes.USER },
-                    { receiverId: userId, receiverType: UserTypes.USER },
+                    { senderId: userId },
+                    { receiverId: userId },
                 ],
             },
             orderBy: { createdAt: "asc" },
@@ -59,8 +59,8 @@ export class ChatService {
         return await prisma.chatMessage.findMany({
             where: {
                 OR: [
-                    { senderId: doctorId, senderType: UserTypes.DOCTOR },
-                    { receiverId: doctorId, receiverType: UserTypes.DOCTOR },
+                    { senderId: doctorId },
+                    { receiverId: doctorId },
                 ],
             },
             orderBy: { createdAt: "asc" },
@@ -70,25 +70,23 @@ export class ChatService {
 
     static async uploadVoiceMessage(data: VoiceMessageData) {
 
-        const senderExists = await checkIfUserExists(data.senderId, data.senderType);
+        const senderExists = await checkIfUserExists(data.senderId);
         if (!senderExists) {
             throw new NotFoundException("Sender not found", ErrorCode.NOTFOUND);
         }
 
         // Check if receiver exists
-        const receiverExists = await checkIfUserExists(data.receiverId, data.receiverType);
+        const receiverExists = await checkIfUserExists(data.receiverId);
         if (!receiverExists) {
             throw new NotFoundException("Receiver not found", ErrorCode.NOTFOUND);
         }
 
-        const { senderId, senderType, receiverId, receiverType, voiceUrl } = data;
+        const { senderId, receiverId, voiceUrl } = data;
 
         const newMessage = await prisma.chatMessage.create({
             data: {
                 senderId,
-                senderType,
                 receiverId,
-                receiverType,
                 voiceUrl: voiceUrl,
             },
         });

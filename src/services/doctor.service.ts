@@ -4,6 +4,7 @@ import { NotFoundException } from "../exception/not-found";
 import { ErrorCode } from "../exception/base";
 import { oauth2Client } from "../utils/oauthUtils";
 import logger from "../logger";
+import { computeDoctorAvailability } from "../utils/computeDoctorAvailability";
 
 interface FilterDoctor {
   specialization?: string;
@@ -58,55 +59,40 @@ export class DoctorService {
     return {
       ...doctor,
       patientsTreated: patientsTreated.length,
+      isAvailable: computeDoctorAvailability(doctor.doctorProfile!.isOnline, doctor.doctorProfile!.lastActive, 7), // Uses threshold of 7 days
     }
   }
-
-
 
   static async getTopDoctors() {
     const ratings = await prisma.review.groupBy({
       by: ["doctorId"],
-      _avg: { rating: true }, 
+      _avg: { rating: true },
       orderBy: { _avg: { rating: "desc" } },
       take: 5,
     });
-  
+
     const doctorIds = ratings.map(r => r.doctorId);
-  
+
     const doctors = await prisma.doctorProfile.findMany({
       where: { id: { in: doctorIds } },
       include: {
-        user: true, 
-        specialty: true, 
+        user: true,
+        specialty: true,
       },
     });
-  
+
     const doctorMap = Object.fromEntries(
       ratings.map(r => [r.doctorId, r._avg.rating])
     );
     const topDoctors = doctors.map(doctor => ({
       ...doctor,
-      avgRating: doctorMap[doctor.id] || 0, // Default to 0 if no rating
+      avgRating: doctorMap[doctor.id] || 0,
     }));
-  
+
     return topDoctors;
   }
-  
 
-  // static async findDoctors(filters: FilterDoctor): Promise<User[]> {
-  //   return prisma.doctorProfile.findMany({
-  //     where: {
-  //       specialtyId: filters.specialization,
-  //       // ratings: { gte: filters.minRating },
-  //       location: { contains: filters.location },
-  //       consultationTypes: { has: filters.consultationType },
-  //     },
-  //   });
-  // }
-
-  static async getDoctorAvailability(
-    doctorId: string
-  ): Promise<any> {
+  static async getDoctorAvailability(doctorId: string): Promise<any> {
     const doctor = await prisma.doctorProfile.findUnique({
       where: { userId: doctorId },
       select: { availability: true }
@@ -142,7 +128,7 @@ export class DoctorService {
   }
 
   static async getGeneralPractitioners() {
-    return await prisma.doctorProfile.findMany({
+    const doctors = await prisma.doctorProfile.findMany({
       where: {
         specialty: {
           name: "General Practitioner",
@@ -153,6 +139,14 @@ export class DoctorService {
         specialty: true,
       },
     });
+
+    const transformedDoctors = doctors.map((doctor) => ({
+      ...doctor,
+      isAvailable: computeDoctorAvailability(doctor.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
+    }));
+
+    return transformedDoctors;
+
   }
 
   static async getSpecializations() {
@@ -177,5 +171,29 @@ export class DoctorService {
         reference: fileUrls.reference,
       },
     });
+  }
+
+  static async getDoctorsBySpecialty(specialtyName: string) {
+    // Fetch doctors by specialty
+    const doctors = await prisma.doctorProfile.findMany({
+      where: {
+        specialty: {
+          OR: [
+            { name: specialtyName },
+            { id: specialtyName }
+          ],
+        },
+      },
+      include: {
+        user: true,
+        specialty: true,
+      },
+    });
+
+    if (!doctors.length) {
+      throw new NotFoundException(`No doctors found for this ${specialtyName}`, ErrorCode.NOTFOUND);
+    }
+
+    return doctors;
   }
 }

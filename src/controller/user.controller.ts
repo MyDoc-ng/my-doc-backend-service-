@@ -6,6 +6,7 @@ import { ConsultationService } from '../services/appointment.service';
 import { ChatService } from '../services/chat.service';
 import { BadRequestException } from '../exception/bad-request';
 import { ErrorCode } from '../exception/base';
+import { computeDoctorAvailability } from '../utils/computeDoctorAvailability';
 
 
 export class UserController {
@@ -37,7 +38,7 @@ export class UserController {
 
       res.status(200).json(doctors);
     } catch (error: any) {
-     
+
       next(error);
     }
   }
@@ -50,10 +51,7 @@ export class UserController {
 
       res.status(200).json(doctors);
     } catch (error: any) {
-      logger.error('Error fetching general practitioners', {
-        error: error.message,
-        stack: error.stack
-      });
+
       next(error);
     }
   }
@@ -65,14 +63,12 @@ export class UserController {
 
       logger.info('Fetching doctor by id', { doctorId });
       const doctor = await DoctorService.getDoctorById(doctorId);
+
       logger.debug('Doctor fetched successfully', { doctor });
 
       res.status(200).json(doctor);
     } catch (error: any) {
-      logger.error('Error fetching the doctor ', {
-        error: error.message,
-        stack: error.stack
-      });
+
       next(error);
     }
   }
@@ -160,6 +156,23 @@ export class UserController {
       const reviews = await ConsultationService.getDoctorReviews(doctorId);
 
       res.status(200).json(reviews);
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  static async getDoctorsBySpecialty(req: Request, res: Response, next: NextFunction) {
+    try {
+      const specialtyName = req.params.specialty;
+
+      if (!specialtyName) {
+        res.status(400).json({ message: "Specialty is required" });
+      }
+
+      const doctors = await DoctorService.getDoctorsBySpecialty(specialtyName);
+
+      res.status(200).json(doctors);
+
     } catch (error) {
       next(error)
     }

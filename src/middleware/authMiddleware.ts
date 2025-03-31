@@ -38,7 +38,7 @@ export const authenticate = (
   if (!token) {
     logger.warn("No token provided for authentication");
     return next(
-      new UnauthorizedException("Unauthorized", ErrorCode.UNAUTHORIZED)
+      new UnauthorizedException("Unauthenticated", ErrorCode.UNAUTHORIZED)
     );
   }
 
@@ -47,7 +47,7 @@ export const authenticate = (
       if (err) {
         logger.error("Token verification failed", { error: err.message });
         return next(
-          new UnauthorizedException("Unauthorized", ErrorCode.UNAUTHORIZED)
+          new UnauthorizedException("Unauthenticated", ErrorCode.UNAUTHORIZED)
         );
       }
 
@@ -61,7 +61,7 @@ export const authenticate = (
     });
   } catch (error: any) {
     logger.error("Authentication error", { error: error.message });
-    next(new UnauthorizedException("Unauthorized", ErrorCode.UNAUTHORIZED));
+    next(new UnauthorizedException("Unauthenticated", ErrorCode.UNAUTHORIZED));
   }
 };
 

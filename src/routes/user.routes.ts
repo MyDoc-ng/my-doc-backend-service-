@@ -41,6 +41,8 @@ router.post("/appointments", [authenticate], validateData(appointmentSchema), Us
 router.get("/doctors/gp", [authenticate], UserController.generalPractitioners);
 router.get("/doctors/specializations", [authenticate], UserController.getSpecializations);
 router.get("/doctors/:doctorId", [authenticate], UserController.getDoctorById);
+router.get("/doctors/specialty/:specialty", [authenticate], UserController.getDoctorsBySpecialty);
+
 
 //! Reviews Endpoints
 router.post('/reviews', authenticate, validateData(reviewDoctorSchema), UserController.reviewDoctor);
