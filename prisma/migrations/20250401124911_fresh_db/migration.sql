@@ -17,7 +17,7 @@ CREATE TYPE "TransactionType" AS ENUM ('TOP_UP', 'CONSULTATION', 'REFERRAL');
 CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'SUCCESSFUL', 'FAILED');
 
 -- CreateEnum
-CREATE TYPE "NotificationType" AS ENUM ('APPOINTMENT_SUCCESS', 'APPOINTMENT_SCHEDULED', 'APPOINTMENT_RESCHEDULED', 'APPOINTMENT_CANCELLED', 'APPOINTMENT_REMINDER', 'NEW_MESSAGE', 'VIDEO_CALL', 'SCHEDULE_CHANGED', 'ACCOUNT_APPROVED', 'ACCOUNT_REJECTED');
+CREATE TYPE "NotificationType" AS ENUM ('VIDEO_CALL', 'NEW_MESSAGE', 'SCHEDULE_CHANGED', 'ACCOUNT_APPROVED', 'ACCOUNT_REJECTED', 'APPOINTMENT_SUCCESS', 'APPOINTMENT_REMINDER', 'APPOINTMENT_SCHEDULED', 'APPOINTMENT_RESCHEDULED', 'APPOINTMENT_CANCELLED');
 
 -- CreateTable
 CREATE TABLE "users" (
@@ -26,14 +26,13 @@ CREATE TABLE "users" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password" TEXT,
-    "phoneNumber" TEXT,
-    "profilePicture" TEXT,
     "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "verificationToken" TEXT,
     "googleId" TEXT,
     "facebookId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "deletedAt" TIMESTAMP(3),
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -45,6 +44,8 @@ CREATE TABLE "PatientProfile" (
     "dateOfBirth" DATE,
     "gender" "Gender" NOT NULL DEFAULT 'MALE',
     "address" TEXT,
+    "phoneNumber" TEXT,
+    "profilePicture" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -73,6 +74,7 @@ CREATE TABLE "DoctorProfile" (
     "balance" DOUBLE PRECISION NOT NULL DEFAULT 0,
     "googleCalendarId" TEXT,
     "googleRefreshToken" TEXT,
+    "profilePicture" TEXT,
     "specialtyId" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -186,6 +188,8 @@ CREATE TABLE "consultations" (
     "startTime" TIMESTAMP(3) NOT NULL,
     "endTime" TIMESTAMP(3) NOT NULL,
     "googleEventId" TEXT,
+    "cancellationReason" TEXT,
+    "cancelledAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -252,7 +256,7 @@ CREATE TABLE "Notification" (
 CREATE TABLE "Review" (
     "id" TEXT NOT NULL,
     "doctorId" TEXT NOT NULL,
-    "userId" TEXT NOT NULL,
+    "patientId" TEXT NOT NULL,
     "rating" INTEGER NOT NULL,
     "comment" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -264,9 +268,6 @@ CREATE TABLE "Review" (
 CREATE UNIQUE INDEX "users_email_key" ON "users"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "users_phoneNumber_key" ON "users"("phoneNumber");
-
--- CreateIndex
 CREATE UNIQUE INDEX "users_googleId_key" ON "users"("googleId");
 
 -- CreateIndex
@@ -274,6 +275,9 @@ CREATE UNIQUE INDEX "users_facebookId_key" ON "users"("facebookId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PatientProfile_userId_key" ON "PatientProfile"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "PatientProfile_phoneNumber_key" ON "PatientProfile"("phoneNumber");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "DoctorProfile_userId_key" ON "DoctorProfile"("userId");
@@ -360,4 +364,4 @@ ALTER TABLE "Notification" ADD CONSTRAINT "Notification_recipientId_fkey" FOREIG
 ALTER TABLE "Review" ADD CONSTRAINT "Review_doctorId_fkey" FOREIGN KEY ("doctorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Review" ADD CONSTRAINT "Review_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "Review" ADD CONSTRAINT "Review_patientId_fkey" FOREIGN KEY ("patientId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
