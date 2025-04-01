@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
 
 jobs:
   deploy:
@@ -16,11 +13,11 @@ jobs:
       - name: 🚀 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 14
+      - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
-    
+
       - name: Setup SSH Key
         run: |
           mkdir -p ~/.ssh
@@ -28,16 +25,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 📂 Copy Files to Server via SSH
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "."  
-          target: "/var/www/api/mydocngApi"  # Change this to your project directory
-
-      - name: 🔄 SSH into Server and Deploy
+      - name: 🔄 Pull Latest Code on Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -45,10 +33,28 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/api/mydocngApi
-            git pull origin master  # Fetch latest changes
-            yarn install           # Install dependencies
+            git pull origin master
+
+      - name: 📂 Copy Files to Server via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/var/www/api/mydocngApi"
+
+      - name: 🚀 Deploy & Restart App
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /var/www/api/mydocngApi
+            yarn install --frozen-lockfile
+            npx prisma generate
             npx prisma migrate reset --force # Reset Prisma migrations
-            npx prisma migrate deploy  # ✅ Apply Prisma migrations
-            npx prisma generate         # ✅ Generate Prisma Client
-            yarn run build         # Build project (if needed)
+            npx prisma migrate deploy
+            yarn build
             pm2 restart mydocng-api # Restart app using PM2
