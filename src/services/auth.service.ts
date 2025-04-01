@@ -5,11 +5,11 @@ import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
 import { NotFoundException } from "../exception/not-found";
 import {
-  LoginResponse,
-  RegisterDoctorData,
-  RegisterUserData,
-  UserBioData,
-  UserPhotoData,
+  ILoginResponse,
+  IRegisterDoctor,
+  IRegisterUser,
+  IUserBio,
+  IUserPhoto,
 } from "../models/auth.model";
 import { OAuth2Client } from "google-auth-library";
 import { generateVerificationToken } from "../utils/generate_verify_token";
@@ -21,7 +21,7 @@ import { User, UserTypes } from "@prisma/client";
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export class AuthService {
   // Register a new user
-  static async registerUser(userData: RegisterUserData): Promise<any> {
+  static async registerUser(userData: IRegisterUser): Promise<any> {
     const { name, email, password } = userData;
 
     // Check if the user already exists
@@ -55,7 +55,7 @@ export class AuthService {
     };
   }
 
-  static async registerDoctors(data: RegisterDoctorData) {
+  static async registerDoctors(data: IRegisterDoctor) {
     const {
       name,
       email,
@@ -86,7 +86,7 @@ export class AuthService {
     return newDoctor;
   }
 
-  static async submitBiodata(userData: UserBioData): Promise<any> {
+  static async submitBiodata(userData: IUserBio): Promise<any> {
     const {
       userId,
       dateOfBirth,
@@ -131,7 +131,7 @@ export class AuthService {
   static async loginUser(
     email: string,
     password: string
-  ): Promise<LoginResponse> {
+  ): Promise<ILoginResponse> {
     const user = await prisma.user.findUnique({
       where: { email },
       select: { id: true, name: true, email: true, password: true, role: true, patientProfile: true },
@@ -171,7 +171,7 @@ export class AuthService {
     };
   }
 
-  static async updateUserPhoto(data: UserPhotoData): Promise<any> {
+  static async updateUserPhoto(data: IUserPhoto): Promise<any> {
     const { userId, photoPath } = data;
 
     const userExists = await checkIfUserExists(userId);

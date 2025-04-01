@@ -19,9 +19,33 @@ export class UserController {
     }
   }
 
+  static async getPendingConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const userConsultations = await UserService.getPendingConsultations(req.params.userId);
+      res.status(200).json(userConsultations);
+    } catch (error) {
+      next(error)
+    }
+  }
   static async getUpcomingConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       const userConsultations = await UserService.getUpcomingConsultations(req.params.userId);
+      res.status(200).json(userConsultations);
+    } catch (error) {
+      next(error)
+    }
+  }
+  static async getCompletedConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const userConsultations = await UserService.getCompletedConsultations(req.params.userId);
+      res.status(200).json(userConsultations);
+    } catch (error) {
+      next(error)
+    }
+  }
+  static async getCancelledConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const userConsultations = await UserService.getCancelledConsultations(req.params.userId);
       res.status(200).json(userConsultations);
     } catch (error) {
       next(error)
@@ -85,6 +109,21 @@ export class UserController {
       const consultation = await ConsultationService.bookConsultation(req.body);
       res.status(200).json(consultation);
     } catch (error: any) {
+      next(error)
+    }
+  }
+
+  static async cancelAppointment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const appointmentId = req.params.appointmentId;
+      const userId = req.user.id;
+
+      const { reason, otherReason } = req.body;
+
+      const result = await ConsultationService.cancelAppointment(userId, appointmentId, reason, otherReason);
+
+      res.status(200).json({ message: "Appointment cancelled successfully", data: result });
+    } catch (error) {
       next(error)
     }
   }
@@ -176,12 +215,36 @@ export class UserController {
     }
   }
 
-  // Register a new user
   static async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const user = await UserService.updateProfile(req.body);
       res.status(201).json(user);
     } catch (error: any) {
+      next(error);
+    }
+  }
+
+  static async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const userId = req.user.id;
+
+      await UserService.changePassword({ currentPassword, newPassword, userId });
+
+      res.status(201).json({ message: "Password changed successfully." });
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  static async deleteAccount(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user.id;
+
+      await UserService.deleteUserById(userId);
+
+      res.json({ message: "Account deleted successfully." });
+    } catch (error) {
       next(error);
     }
   }

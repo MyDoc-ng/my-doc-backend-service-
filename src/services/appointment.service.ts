@@ -1,7 +1,7 @@
 import { prisma } from "../prisma/prisma";
 import { ErrorCode } from "../exception/base";
 import { BookingData, GOPDBookingData } from "../models/consultation.model";
-import { NotificationType, SessionType } from "@prisma/client";
+import { AppointmentStatus, NotificationType, SessionType } from "@prisma/client";
 import { NotificationService } from "./notification.service";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 import { NotFoundException } from "../exception/not-found";
@@ -168,5 +168,26 @@ export class ConsultationService {
     });
 
     return upcomingAppointment;
+  }
+
+  static async cancelAppointment(userId: string, appointmentId: string, reason: string, otherReason?: string) {
+    // Ensure the appointment exists and belongs to the user
+    const appointment = await prisma.consultation.findUnique({
+      where: { id: appointmentId, patientId: userId },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException("Appointment not found or unauthorized", ErrorCode.NOTFOUND);
+    }
+
+    // Update appointment status to 'cancelled'
+    return await prisma.consultation.update({
+      where: { id: appointmentId },
+      data: {
+        status: AppointmentStatus.CANCELLED,
+        cancellationReason: reason === "Others" ? otherReason : reason,
+        cancelledAt: new Date(),
+      },
+    });
   }
 }

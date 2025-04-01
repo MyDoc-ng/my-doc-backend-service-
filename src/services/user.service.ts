@@ -4,7 +4,9 @@ import { NotFoundException } from "../exception/not-found";
 import { prisma } from "../prisma/prisma";
 import { ChatMessageData } from "../models/chatMessage.model";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
-import { UpdateProfileData } from "../models/auth.model";
+import bcrypt from "bcrypt";
+import { IChangePassword, IUpdateProfile } from "../models/auth.model";
+import { BadRequestException } from "../exception/bad-request";
 
 export class UserService {
 
@@ -28,6 +30,72 @@ export class UserService {
       where: {
         patientId: userId,
         status: AppointmentStatus.UPCOMING
+      },
+      orderBy: {
+        startTime: 'asc'
+      },
+      include: {
+        patient: true,
+        doctor: true,
+      },
+    });
+  }
+
+  static async getPendingConsultations(userId: string) {
+
+    const userExists = await checkIfUserExists(userId);
+    if (!userExists) {
+      throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
+    }
+
+    return await prisma.consultation.findMany({
+      where: {
+        patientId: userId,
+        status: AppointmentStatus.PENDING
+      },
+      orderBy: {
+        startTime: 'asc'
+      },
+      include: {
+        patient: true,
+        doctor: true,
+      },
+    });
+  }
+
+  static async getCancelledConsultations(userId: string) {
+
+    const userExists = await checkIfUserExists(userId);
+    if (!userExists) {
+      throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
+    }
+
+    return await prisma.consultation.findMany({
+      where: {
+        patientId: userId,
+        status: AppointmentStatus.CANCELLED
+      },
+      orderBy: {
+        startTime: 'asc'
+      },
+      include: {
+        patient: true,
+        doctor: true,
+      },
+    });
+  }
+
+  static async getCompletedConsultations(userId: string) {
+
+    const userExists = await checkIfUserExists(userId);
+    if (!userExists) {
+      throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
+    }
+
+    return await prisma.consultation.findMany({
+      where: {
+        patientId: userId,
+        status: AppointmentStatus.COMPLETED
       },
       orderBy: {
         startTime: 'asc'
@@ -78,18 +146,10 @@ export class UserService {
 
   }
 
-  static async updateProfile(profileData: UpdateProfileData): Promise<any> {
-    const {
-      userId,
-      dateOfBirth,
-      gender,
-      phoneNumber,
-      name,
-      email
-    } = profileData;
+  static async updateProfile(profileData: IUpdateProfile): Promise<any> {
+    const { userId, dateOfBirth, gender, phoneNumber, name, email } = profileData;
 
     const userExists = await checkIfUserExists(userId);
-
     if (!userExists) {
       throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
     }
@@ -128,4 +188,31 @@ export class UserService {
     };
   }
 
+  static async changePassword(passwordData: IChangePassword): Promise<any> {
+    const { newPassword, currentPassword, userId } = passwordData;
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { password: true } });
+    if (!user) {
+      throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
+    }
+
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password!);
+
+    if (!isPasswordValid) {
+      throw new BadRequestException("Current password is incorrect", ErrorCode.UNAUTHORIZED);
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    return await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+  }
+
+  static async deleteUserById(userId: string): Promise<void> {
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+  }
 }

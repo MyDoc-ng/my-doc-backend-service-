@@ -1,13 +1,13 @@
 import express, { Router } from 'express';
 import { validateData } from '../middleware/validationMiddleware';
 import logger from '../logger';
-import { updateProfileSchema, userBiodataSchema, userLoginSchema, userRegisterSchema } from '../schema/user.schema';
+import { updatePasswordSchema, updateProfileSchema, userBiodataSchema, userLoginSchema, userRegisterSchema } from '../schema/user.schema';
 import { AuthController } from '../controller/auth.controller';
 import { authenticate } from '../middleware/authMiddleware';
 import { DoctorController } from '../controller/doctor.controller';
 import { upload } from '../middleware/upload';
 import { UserController } from '../controller/user.controller';
-import { appointmentSchema, gopdSchema } from '../schema/appointment.schema';
+import { appointmentSchema, cancelSchema, gopdSchema } from '../schema/appointment.schema';
 import { NotificationController } from '../controller/notification.controller';
 import { chatSchema } from '../schema/chat.schema';
 import { uploadVoice } from '../middleware/uploadVoice';
@@ -32,9 +32,14 @@ router.post('/logout', AuthController.logout);
 router.get('/', [authenticate], UserController.getUsers);
 
 //! Consultation Endpoints
-router.get('/upcoming-appointments/:userId', [authenticate], UserController.getUpcomingConsultations);
+router.get('/appointments/pending/:userId', [authenticate], UserController.getPendingConsultations);
+router.get('/appointments/upcoming/:userId', [authenticate], UserController.getUpcomingConsultations);
+router.get('/appointments/completed/:userId', [authenticate], UserController.getCompletedConsultations);
+router.get('/appointments/cancelled/:userId', [authenticate], UserController.getCancelledConsultations);
 router.post("/appointments/gopd", [authenticate], validateData(gopdSchema), UserController.bookGOPDConsultation);
 router.post("/appointments", [authenticate], validateData(appointmentSchema), UserController.bookConsultation);
+router.post("/appointments/cancel/:appointmentId", [authenticate], validateData(cancelSchema), UserController.cancelAppointment);
+
 
 
 //! Doctor Endpoints
@@ -60,27 +65,15 @@ router.get("/chats/:userId", authenticate, UserController.getMessages);
 router.post("/chats/voice", authenticate, uploadVoice.single("voice"), UserController.sendVoiceMessage);
 
 // ! Profile Endpoints
-router.put("/profile/edit", authenticate, validateData(updateProfileSchema), UserController.updateProfile);
-
-
-
-
-
-
-
+// router.get('/profile', authenticate, UserController.getProfile);
+router.put("/profile", authenticate, validateData(updateProfileSchema), UserController.updateProfile);
+//@ts-ignore
+router.post("/change-password", authenticate, validateData(updatePasswordSchema), UserController.changePassword);
+router.delete("/delete-account", authenticate, UserController.deleteAccount);
 // tell frontend to include these scopes 
 //TODO openid profile email 
 
-
-// Profile routes
-// router.get('/profile', authenticate, UserController.getProfile);
-// router.put('/profile', authenticate, UserController.updateProfile);
-
-// Appointment routes
-// router.get('/appointments', authenticate, UserController.getAppointments);
-// router.post('/appointments', authenticate, UserController.createAppointment);
 router.get("/doctors", authenticate, DoctorController.index);
-
 
 
 export default router;

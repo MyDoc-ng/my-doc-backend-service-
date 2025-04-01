@@ -10,13 +10,11 @@ export interface JwtPayload {
   id: string;
   email: string;
   role: UserTypes; 
-  firstName?: string;
-  lastName?: string;
+  name?: string;
   phoneNumber?: string;
   profileImage?: string;
   isVerified?: boolean;
   lastLogin?: string;
-  specialization?: string; // If doctor
   permissions?: string[]; // If admin
 }
 

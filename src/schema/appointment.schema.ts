@@ -16,3 +16,8 @@ export const gopdSchema = z.object({
   // endTime: z.string(),
 });
 
+export const cancelSchema = z.object({
+  reason: z.string().min(3, "Reason is required"),
+  otherReason: z.string().optional(),
+});
+

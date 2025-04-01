@@ -1,24 +1,24 @@
 import { Gender } from "@prisma/client";
 
 // Type for Register User Data
-export interface RegisterUserData {
+export interface IRegisterUser {
   name: string;
   email: string;
   password: string;
 }
-export interface RegisterDoctorData {
+export interface IRegisterDoctor {
   name: string;
   email: string;
   password: string;
 }
 
-export interface UserPhotoData {
+export interface IUserPhoto {
   userId: string;
   photoPath: string;
 }
 
 // Type for Login Response
-export interface LoginResponse {
+export interface ILoginResponse {
   accessToken: string;
   refreshToken: string;
   name: string;
@@ -28,18 +28,23 @@ export interface LoginResponse {
 }
 
 // Type for Biodata Submission
-export interface UserBioData {
+export interface IUserBio {
   userId: string;
   dateOfBirth: string; // Ensure it is a valid date string
   gender: Gender; 
   phoneNumber: string;
   address: string;
 }
-export interface UpdateProfileData {
+export interface IUpdateProfile {
   userId: string;
   dateOfBirth: string; // Ensure it is a valid date string
   gender: Gender; 
   phoneNumber: string;
   name: string;
   email: string;
+}
+export interface IChangePassword {
+  userId: string;
+  newPassword: string;
+  currentPassword: string; 
 }
