@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master
+  pull_request:
+    branches:
+      - master # Note: Deploying PRs directly to production is unusual. Ensure this is intended.
 
 jobs:
   deploy:
@@ -25,36 +28,47 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: 🔄 Pull Latest Code on Server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            cd /var/www/api/mydocngApi
-            git pull origin master
-
       - name: 📂 Copy Files to Server via SSH
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "."
+          source: "." # Copies entire checkout directory. Consider optimizing by specifying only needed files/folders.
           target: "/var/www/api/mydocngApi"
 
-      - name: 🚀 Deploy & Restart App
+      - name: 🔄 SSH into Server and Deploy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            # Navigate to the application directory
             cd /var/www/api/mydocngApi
-            yarn install --frozen-lockfile
-            npx prisma generate
-            npx prisma migrate reset --force # Reset Prisma migrations
+
+            # Ensure DATABASE_URL environment variable is available for Prisma commands
+            # (e.g., loaded from .env file, PM2 ecosystem file, or system environment)
+            echo "INFO: Starting deployment process on server..."
+
+            # Install dependencies using the lockfile for consistency
+            echo "INFO: Installing dependencies..."
+            yarn install --frozen-lockfile || yarn install # Fallback if --frozen-lockfile isn't supported/fails
+
+            # Apply pending database migrations safely
+            echo "INFO: Applying Prisma migrations..."
             npx prisma migrate deploy
-            yarn build
-            pm2 restart mydocng-api # Restart app using PM2
+
+            # Generate Prisma Client based on the schema
+            echo "INFO: Generating Prisma Client..."
+            npx prisma generate
+
+            # Build the project (if necessary)
+            echo "INFO: Building project..."
+            yarn run build
+
+            # Restart the application using PM2
+            echo "INFO: Restarting application with PM2..."
+            pm2 restart mydocng-api
+
+            echo "INFO: Deployment successful!"
