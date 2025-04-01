@@ -48,5 +48,6 @@ jobs:
             git pull origin master  # Fetch latest changes
             yarn install           # Install dependencies
             yarn run build         # Build project (if needed)
+            npx prisma migrate reset --force
             npx prisma migrate deploy  # ✅ Apply Prisma migrations
             pm2 restart mydocng-api # Restart app using PM2
