@@ -52,3 +52,4 @@ jobs:
             npx prisma generate         # ✅ Generate Prisma Client
             yarn run build         # Build project (if needed)
             pm2 restart mydocng-api # Restart app using PM2
+            
