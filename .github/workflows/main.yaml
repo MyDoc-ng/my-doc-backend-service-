@@ -20,6 +20,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'yarn'
     
       - name: Setup SSH Key
         run: |
@@ -52,4 +53,3 @@ jobs:
             npx prisma generate         # ✅ Generate Prisma Client
             yarn run build         # Build project (if needed)
             pm2 restart mydocng-api # Restart app using PM2
-            
