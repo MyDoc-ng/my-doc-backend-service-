@@ -48,7 +48,6 @@ jobs:
             cd /var/www/api/mydocngApi
             git pull origin master  # Fetch latest changes
             yarn install           # Install dependencies
-            npx prisma migrate reset --force # Reset Prisma migrations
             npx prisma migrate deploy  # ✅ Apply Prisma migrations
             npx prisma generate         # ✅ Generate Prisma Client
             yarn run build         # Build project (if needed)

@@ -6,27 +6,17 @@ import { ErrorCode } from "../exception/base";
 
 export class AuthController {
   // Register a new user
-  static async register(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const user = await AuthService.registerUser(req.body);
-      res
-        .status(201)
-        .json({ message: "User registered successfully", data: user });
+      res.status(201).json(user);
     } catch (error: any) {
       next(error);
     }
   }
 
   // Register a new user
-  static async submitBiodata(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  static async submitBiodata(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const user = await AuthService.submitBiodata(req.body);
       res.status(201).json(user);
@@ -36,14 +26,10 @@ export class AuthController {
   }
 
   // Login user and generate a JWT token
-  static async login(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> {
+  static async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { email, password }: { email: string; password: string } = req.body;
-      
+
       const result = await AuthService.loginUser(email, password);
 
       if (result.accessToken) {
@@ -56,11 +42,7 @@ export class AuthController {
     }
   }
 
-  static async uploadUserPhoto(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<any> {
+  static async uploadUserPhoto(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       if (!req.file) {
         throw new BadRequestException("No file uploaded", ErrorCode.BADREQUEST);
@@ -69,7 +51,7 @@ export class AuthController {
       const userId = req.body.userId;
       let photoPath = req.file.path;
 
-      const serverUrl = `${req.protocol}://${req.get("host")}`; 
+      const serverUrl = `${req.protocol}://${req.get("host")}`;
 
       photoPath = `${serverUrl}/${photoPath.replace(/\\/g, "/")}`;
 
@@ -87,11 +69,7 @@ export class AuthController {
     }
   }
 
-  static async googleAuth(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<any> {
+  static async googleAuth(req: Request, res: Response, next: NextFunction): Promise<any> {
     const { idToken } = req.body;
 
     try {
@@ -103,11 +81,7 @@ export class AuthController {
     }
   }
 
-  static async refreshToken(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<any> {
+  static async refreshToken(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       const { refreshToken } = req.body;
 
@@ -124,13 +98,13 @@ export class AuthController {
 
   static async logout(req: Request, res: Response): Promise<any> {
     const { userId } = req.body; // Remove token, only use userId
-  
+
     // Delete all Refresh Tokens for the user
     await prisma.refreshToken.deleteMany({ where: { userId } });
-  
+
     res.json({ message: "Logged out successfully" });
   }
-  
+
 
   // static async oAuth2Callback(req: Request, res: Response): Promise<any> {
   //   const code = req.query.code as string;
