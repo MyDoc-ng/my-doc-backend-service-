@@ -239,6 +239,7 @@ model ChatMessage {
   readAt      DateTime? // When the message was read
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? 
 
   // Relationships
   sender   User @relation(fields: [senderId], references: [id], name: "SenderMessages")
