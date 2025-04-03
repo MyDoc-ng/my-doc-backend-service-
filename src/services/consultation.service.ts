@@ -5,6 +5,10 @@ import { AppointmentStatus, NotificationType, SessionType } from "@prisma/client
 import { NotificationService } from "./notification.service";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 import { NotFoundException } from "../exception/not-found";
+import { BadRequestException } from "../exception/bad-request";
+import { DoctorService } from "./doctor.service";
+import { calendar } from "../utils/oauthUtils";
+import logger from "../logger";
 
 export class ConsultationService {
 
@@ -187,6 +191,76 @@ export class ConsultationService {
         status: AppointmentStatus.CANCELLED,
         cancellationReason: reason === "Others" ? otherReason : reason,
         cancelledAt: new Date(),
+      },
+    });
+  }
+
+  static async acceptAppointment(appointmentId: string, doctorId: string) {
+    const appointment = await prisma.consultation.findUnique({
+      where: { id: appointmentId },
+      include: { patient: true, doctor: true },
+    });
+
+    if (!appointment) {
+      throw new NotFoundException("Appointment not found", ErrorCode.NOTFOUND);
+    }
+
+    if (appointment.doctorId !== doctorId) {
+      throw new BadRequestException("You are not authorized to accept this appointment", ErrorCode.BADREQUEST);
+    }
+
+    if (appointment.status !== AppointmentStatus.PENDING) {
+      throw new BadRequestException("Appointment is not in pending status", ErrorCode.BADREQUEST);
+    }
+
+    // Get doctor's calendar details
+    const { calendarId, oauth2Client } = await DoctorService.getDoctorCalendarDetails(appointment.doctorId);
+
+    // Create event in Google Calendar
+    const event = {
+      summary: `Appointment with ${appointment.patient.name}`,
+      description: 'Doctor Appointment',
+      start: {
+        dateTime: new Date(appointment.startTime).toISOString(),
+        timeZone: 'UTC',
+      },
+      end: {
+        dateTime: new Date(appointment.endTime).toISOString(),
+        timeZone: 'UTC',
+      },
+      attendees: [{ email: appointment.patient.email }],
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: 'email', minutes: 24 * 60 },
+          { method: 'popup', minutes: 10 },
+        ],
+      },
+      conferenceData: {
+        createRequest: {
+          requestId: appointment.id,
+          conferenceSolutionKey: { type: 'hangoutsMeet' },
+        },
+      },
+    };
+
+    const calendarResponse = await calendar.events.insert({
+      calendarId: calendarId,
+      auth: oauth2Client,
+      sendNotifications: true,
+      sendUpdates: 'all',
+      requestBody: event,
+      conferenceDataVersion: 1,
+    });
+
+
+    // Update appointment in database with Google Event ID and status
+    return await prisma.consultation.update({
+      where: { id: appointmentId, doctorId },
+      data: {
+        status: AppointmentStatus.UPCOMING,
+        googleEventId: calendarResponse.data.id,
+        googleMeetLink: calendarResponse.data.hangoutLink,
       },
     });
   }

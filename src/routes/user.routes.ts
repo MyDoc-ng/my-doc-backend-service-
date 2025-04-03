@@ -3,7 +3,7 @@ import { validateData } from '../middleware/validationMiddleware';
 import logger from '../logger';
 import { updatePasswordSchema, updateProfileSchema, userBiodataSchema, userLoginSchema, userRegisterSchema } from '../schema/user.schema';
 import { AuthController } from '../controller/auth.controller';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate, authorize } from '../middleware/authMiddleware';
 import { DoctorController } from '../controller/doctor.controller';
 import { upload } from '../middleware/upload';
 import { UserController } from '../controller/user.controller';
@@ -32,13 +32,13 @@ router.post('/logout', AuthController.logout);
 router.get('/', [authenticate], UserController.getUsers);
 
 //! Consultation Endpoints
-router.get('/appointments/pending/:userId', [authenticate], UserController.getPendingConsultations);
-router.get('/appointments/upcoming/:userId', [authenticate], UserController.getUpcomingConsultations);
-router.get('/appointments/completed/:userId', [authenticate], UserController.getCompletedConsultations);
-router.get('/appointments/cancelled/:userId', [authenticate], UserController.getCancelledConsultations);
-router.post("/appointments/gopd", [authenticate], validateData(gopdSchema), UserController.bookGOPDConsultation);
-router.post("/appointments", [authenticate], validateData(appointmentSchema), UserController.bookConsultation);
-router.post("/appointments/cancel/:appointmentId", [authenticate], validateData(cancelSchema), UserController.cancelAppointment);
+router.get('/appointments/pending/:userId', [authenticate, authorize(['PATIENT'])], UserController.getPendingConsultations);
+router.get('/appointments/upcoming/:userId', [authenticate, authorize(['PATIENT'])], UserController.getUpcomingConsultations);
+router.get('/appointments/completed/:userId', [authenticate, authorize(['PATIENT'])], UserController.getCompletedConsultations);
+router.get('/appointments/cancelled/:userId', [authenticate, authorize(['PATIENT'])], UserController.getCancelledConsultations);
+router.post("/appointments/gopd", [authenticate, authorize(['PATIENT'])], validateData(gopdSchema), UserController.bookGOPDConsultation);
+router.post("/appointments", [authenticate, authorize(['PATIENT'])], validateData(appointmentSchema), UserController.bookConsultation);
+router.post("/appointments/cancel/:appointmentId", [authenticate, authorize(['PATIENT'])], validateData(cancelSchema), UserController.cancelAppointment);
 
 
 

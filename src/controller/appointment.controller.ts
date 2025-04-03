@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { ConsultationService } from "../services/appointment.service";
+import { ConsultationService } from "../services/consultation.service";
 
 
 export class AppointmentController {

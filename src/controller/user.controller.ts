@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { UserService } from '../services/user.service';
 import logger from '../logger';
 import { DoctorService } from '../services/doctor.service';
-import { ConsultationService } from '../services/appointment.service';
+import { ConsultationService } from '../services/consultation.service';
 import { ChatService } from '../services/chat.service';
 import { BadRequestException } from '../exception/bad-request';
 import { ErrorCode } from '../exception/base';

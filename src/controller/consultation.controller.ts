@@ -1,6 +1,6 @@
 // src/controllers/booking.controller.ts
 import { NextFunction, Request, Response } from "express";
-import { ConsultationService } from "../services/appointment.service";
+import { ConsultationService } from "../services/consultation.service";
 // import { findDoctors, getDoctorAvailability } from '../services/doctor.service';
 import { DoctorService } from "../services/doctor.service";
 import { AppointmentStatus } from "@prisma/client";
@@ -78,67 +78,5 @@ export class ConsultationController {
       res.status(404).json({ message: "Consultations not found" });
     }
   }
-
-  static async approveAppointment(req: Request, res: Response,next: NextFunction): Promise<any> {
-    try {
-      const appointmentId = req.params.id;
-      const appointment = await prisma.consultation.findUnique({
-        where: { id: appointmentId },
-        include: { patient: true, doctor: true },
-      });
   
-      if (!appointment) {
-        return res.status(404).json({ message: 'Appointment not found' });
-      }
-  
-      if (appointment.status !== 'PENDING') {
-        return res.status(400).json({ message: 'Appointment is not in pending state' });
-      }
-  
-      // Get doctor's calendar details
-      const { calendarId, oauth2Client } = await DoctorService.getDoctorCalendarDetails(appointment.doctorId);
-  
-      // Create event in Google Calendar
-      const event = {
-        summary: `Appointment with ${appointment.patient.name}`,
-        description: 'Doctor Appointment',
-        start: {
-          dateTime: new Date(appointment.startTime).toISOString(),
-          timeZone: 'UTC',
-        },
-        end: {
-          dateTime: new Date(appointment.endTime).toISOString(),
-          timeZone: 'UTC',
-        },
-        attendees: [{ email: appointment.patient.email }],
-        reminders: {
-          useDefault: false,
-          overrides: [
-            { method: 'email', minutes: 24 * 60 },
-            { method: 'popup', minutes: 10 },
-          ],
-        },
-      };
-  
-      const calendarResponse = await calendar.events.insert({
-        calendarId: calendarId,
-        auth: oauth2Client,
-        requestBody: event,
-      });
-  
-      // Update appointment in database with Google Event ID and status
-      const updatedAppointment = await prisma.consultation.update({
-        where: { id: appointmentId },
-        data: {
-          status: AppointmentStatus.PENDING,
-          googleEventId: calendarResponse.data.id,
-        },
-      });
-  
-      res.json({ message: 'Appointment approved and event created in Google Calendar', appointment: updatedAppointment });
-    } catch (error) {
-      console.error("Error approving appointment:", error);
-      res.status(500).json({ message: 'Failed to approve appointment', error: error });
-    }
-  }
 }

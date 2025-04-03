@@ -1,6 +1,4 @@
 import express, { Router } from "express";
-import { validateData } from "../middleware/validationMiddleware";
-import { appointmentSchema } from "../schema/appointment.schema";
 import { ConsultationController } from "../controller/consultation.controller";
 import { authenticate } from "../middleware/authMiddleware";
 
@@ -29,11 +27,6 @@ router.get('/appointments/doctor/:doctorId', [authenticate], ConsultationControl
 //   appointmentController.getUpcomingAppointment
 // );
 
-// GOPD Consultation
-router.post("/appointments/gopd", [authenticate],
-  validateData(appointmentSchema), ConsultationController.bookGOPDConsultation);
-
-router.put('/appointments/:id/approve', [authenticate], ConsultationController.approveAppointment);
 
 router.get("/:id", ConsultationController.getConsultationById);
 

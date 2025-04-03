@@ -1,10 +1,13 @@
-import { SessionType, AppointmentStatus, UserTypes, User } from "@prisma/client";
+import { SessionType, AppointmentStatus, UserTypes, User, ReferralStatus, WithdrawalStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 import { NotFoundException } from "../exception/not-found";
 import { ErrorCode } from "../exception/base";
 import { oauth2Client } from "../utils/oauthUtils";
 import logger from "../logger";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { computeDoctorAvailability } from "../utils/computeDoctorAvailability";
+import { BadRequestException } from "../exception/bad-request";
 
 interface FilterDoctor {
   specialization?: string;
@@ -117,7 +120,7 @@ export class DoctorService {
     });
 
     if (!doctor || !doctor.doctorProfile!.googleRefreshToken || !doctor.doctorProfile!.googleCalendarId) {
-      throw new Error('Doctor not found or Google Calendar not connected.');
+      throw new NotFoundException('Doctor not found or Google Calendar not connected.', ErrorCode.NOTFOUND);
     }
 
     oauth2Client.setCredentials({
@@ -196,4 +199,137 @@ export class DoctorService {
 
     return doctors;
   }
+
+  static async login(data: any) {
+    const doctor = await prisma.user.findUnique({ where: { email: data.email }, select: { id: true, password: true } });
+    if (!doctor || !(await bcrypt.compare(data.password, doctor.password!))) {
+      throw new Error("Invalid credentials");
+    }
+    return jwt.sign({ id: doctor.id, role: UserTypes.DOCTOR }, process.env.JWT_SECRET as string);
+  }
+
+  static async getDashboard(doctorId: string) {
+    return {
+      appointments: await prisma.consultation.findMany({ where: { doctorId } }),
+      earnings: await prisma.payment.findMany({ where: { doctorId } }),
+    };
+  }
+
+  static async getAppointments(doctorId: string, status: AppointmentStatus) {
+
+    if (!status) {
+      status = AppointmentStatus.UPCOMING;
+    }
+
+    // Validate status
+    const validStatuses = Object.values(AppointmentStatus);
+    if (!validStatuses.includes(status.toLocaleUpperCase() as AppointmentStatus)) {
+      throw new BadRequestException(`Invalid appointment status: ${status}`, ErrorCode.BADREQUEST);
+    }
+
+    // Ensure status is in uppercase
+    status = status.toUpperCase() as AppointmentStatus;
+
+    logger.info('Fetching appointments', { doctorId, status });
+    return await prisma.consultation.findMany({
+      where: { doctorId, status },
+      orderBy: { startTime: "desc" },
+    });
+  }
+
+  static async getAppointmentHistory(doctorId: string) {
+    return await prisma.consultation.findMany({
+      where: { doctorId, status: AppointmentStatus.COMPLETED },
+      orderBy: { startTime: "desc" },
+    });
+  }
+
+  static async cancelAppointment(appointmentId: string, doctorId: string) {
+    return prisma.consultation.update({
+      where: { id: appointmentId, doctorId },
+      data: { status: AppointmentStatus.CANCELLED },
+    });
+  }
+
+  static async rescheduleAppointment(appointmentId: string, doctorId: string, newDate: string) {
+    return prisma.consultation.update({
+      where: { id: appointmentId, doctorId },
+      data: { startTime: newDate, status: AppointmentStatus.UPCOMING },
+    });
+  }
+
+  static async getChat(doctorId: string, patientId: string) {
+    return prisma.chatMessage.findMany({
+      where: {
+        OR: [
+          { senderId: doctorId, receiverId: patientId },
+          { senderId: patientId, receiverId: doctorId }
+        ]
+      },
+    });
+  }
+
+  static async sendMessage(doctorId: string, patientId: string, content: string) {
+    return prisma.chatMessage.create({ data: { senderId: doctorId, receiverId: patientId, content } });
+  }
+
+  // static async addMedicalNote(doctorId: string, appointmentId: string, noteData: any) {
+  //   return prisma.medicalNote.create({ data: { ...noteData, doctorId, appointmentId } });
+  // }
+
+  static async getEarnings(doctorId: string) {
+    const totalEarnings = await prisma.payment.aggregate({
+      where: { doctorId, status: PaymentStatus.SUCCESSFUL },
+      _sum: { amount: true },
+    });
+
+    const availableForWithdrawal = await prisma.payment.aggregate({
+      where: { doctorId, status: PaymentStatus.SUCCESSFUL },
+      _sum: { amount: true },
+    });
+
+    return {
+      totalEarnings: totalEarnings._sum.amount || 0,
+      availableForWithdrawal: availableForWithdrawal._sum.amount || 0,
+    };
+  }
+
+
+  static async getPatientHistory(doctorId: string, patientId: string) {
+    return prisma.consultation.findMany({
+      where: { doctorId, patientId, status: AppointmentStatus.COMPLETED },
+      // include: { medicalNotes: true },
+      orderBy: { startTime: "desc" },
+    });
+  }
+
+  static async referPatient(doctorId: string, patientId: string, specialistId: string, notes: string) {
+    return prisma.referral.create({
+      data: {
+        referringDoctorId: doctorId,
+        patientId,
+        specialistId,
+        notes,
+        status: ReferralStatus.PENDING,
+      },
+    });
+  }
+
+  static async requestWithdrawal(doctorId: string, amount: number) {
+    const earnings = await prisma.payment.aggregate({
+      where: { doctorId, status: PaymentStatus.SUCCESSFUL },
+      _sum: { amount: true },
+    });
+
+    const totalEarnings = earnings._sum.amount ?? 0;
+
+    if (totalEarnings < amount) {
+      throw new Error("Insufficient balance for withdrawal");
+    }
+
+    return prisma.withdrawal.create({
+      data: { doctorId, amount, status: WithdrawalStatus.PENDING },
+    });
+  }
+
 }
