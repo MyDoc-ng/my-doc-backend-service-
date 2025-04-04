@@ -128,10 +128,7 @@ export class AuthService {
   }
 
   // Login user and generate a JWT token
-  static async loginUser(
-    email: string,
-    password: string
-  ): Promise<ILoginResponse> {
+  static async loginUser(email: string,password: string): Promise<ILoginResponse> {
     const user = await prisma.user.findUnique({
       where: { email },
       select: { id: true, name: true, email: true, password: true, role: true, patientProfile: true },
@@ -165,6 +162,7 @@ export class AuthService {
       id: user.id,
       email: user.email,
       name: user.name,
+      role: user.role,
       photo: user.patientProfile?.profilePicture,
       accessToken: accessToken,
       refreshToken: refreshToken,
