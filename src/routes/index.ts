@@ -33,7 +33,7 @@ router.post('/refresh-token', AuthController.refreshToken);
 router.post('/logout', authenticate, AuthController.logout);
 
 logger.debug('Routes initialized', {
-    routes: ['/patients', '/doctors', '/admin']
+    routes: ['/patients', '/doctors', '/admin', '/']
 });
 
 export default router; 
