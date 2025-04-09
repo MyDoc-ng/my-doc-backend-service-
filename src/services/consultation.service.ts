@@ -8,8 +8,13 @@ import { NotFoundException } from "../exception/not-found";
 import { BadRequestException } from "../exception/bad-request";
 import { DoctorService } from "./doctor.service";
 import { calendar } from "../utils/oauthUtils";
-import logger from "../logger";
 
+interface ICancelAppointment {
+  appointmentId: string;
+  userId: string;
+  reason: string;
+  otherReason?: string;
+}
 export class ConsultationService {
 
   static async getAllAppointments() {
@@ -174,15 +179,28 @@ export class ConsultationService {
     return upcomingAppointment;
   }
 
-  static async cancelAppointment(userId: string, appointmentId: string, reason: string, otherReason?: string) {
+  static async cancelAppointment(data: ICancelAppointment) {
     // Ensure the appointment exists and belongs to the user
+    const { appointmentId, userId, reason, otherReason } = data;
+
     const appointment = await prisma.consultation.findUnique({
-      where: { id: appointmentId, patientId: userId },
+      where: {
+        id: appointmentId,
+        OR: [
+          { doctorId: userId },
+          { patientId: userId },
+        ],
+      },
     });
 
     if (!appointment) {
       throw new NotFoundException("Appointment not found or unauthorized", ErrorCode.NOTFOUND);
     }
+
+    if (appointment.status === AppointmentStatus.CANCELLED) {
+      throw new BadRequestException("Appointment already cancelled", ErrorCode.BADREQUEST);
+    }
+
 
     // Update appointment status to 'cancelled'
     return await prisma.consultation.update({
@@ -191,6 +209,8 @@ export class ConsultationService {
         status: AppointmentStatus.CANCELLED,
         cancellationReason: reason === "Others" ? otherReason : reason,
         cancelledAt: new Date(),
+        googleEventId: null,
+        googleMeetLink: null,
       },
     });
   }
@@ -258,7 +278,7 @@ export class ConsultationService {
     return await prisma.consultation.update({
       where: { id: appointmentId, doctorId },
       data: {
-        status: AppointmentStatus.UPCOMING,
+        status: AppointmentStatus.CONFIRMED,
         googleEventId: calendarResponse.data.id,
         googleMeetLink: calendarResponse.data.hangoutLink,
       },

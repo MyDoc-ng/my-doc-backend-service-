@@ -1,10 +1,10 @@
 import express, { Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import routes from "./routes";
-import { errorMiddleware } from "./middleware/errorMiddleware";
+import { errorMiddleware } from "./middleware/error.middleware";
 import { NotFoundException } from "./exception/not-found";
 import { ErrorCode } from "./exception/base";
-import responseFormatter from "./middleware/responseFormatter";
+import responseFormatter from "./middleware/responseFormatter.middleware";
 import logger from "./logger";
 import { createServer } from "http";
 import { setupWebSocket } from "./configs/websocket";
@@ -22,7 +22,7 @@ app.use(cors());
 
 const PORT: number = parseInt(process.env.PORT || "8000", 10);
 
-app.use(responseFormatter);
+// app.use(responseFormatter);
 
 app.use("/uploads", express.static("uploads"));
 

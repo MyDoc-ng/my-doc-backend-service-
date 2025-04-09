@@ -9,7 +9,25 @@ interface ErrorResponse {
     success: false;
     message: string;
     error: string;
+    data?: string;
     status: number;
+}
+
+interface ErrorParams {
+    message: string;
+    error?: any;
+    data?: any;
+    status?: number;
+}
+interface NotFoundErrorParams {
+    message: string;
+    error?: any;
+    data?: any;
+    status?: number;
+}
+interface SuccessParams {
+    message: string;
+    data: any;
 }
 
 export const responseService = {
@@ -20,27 +38,29 @@ export const responseService = {
         noContent: 204,
         badRequest: 400,
         unauthorized: 401,
+        conflict: 409,
         forbidden: 403,
         notFound: 404,
         internalServerError: 500,
         serviceUnavailable: 503,
-    } ,
+    },
 
-    success<T>(message: string, data: T): SuccessResponse<T> {
+    success<T>(param: SuccessParams): SuccessResponse<T> {
         return {
             success: true,
-            message,
-            data,
+            message: param.message,
+            data: param.data,
             status: this.statusCodes.ok,
         };
     },
 
-    error(message: string, error?: any): ErrorResponse {
+    error(params: ErrorParams): ErrorResponse {
         return {
             success: false,
-            message,
-            error,
-            status: this.statusCodes.badRequest,
+            message: params.message,
+            error: params.error,
+            data: params.data,
+            status: params.status || this.statusCodes.badRequest,
         };
     },
 
@@ -62,11 +82,11 @@ export const responseService = {
         };
     },
 
-    notFoundError(message: string): ErrorResponse {
+    notFoundError(param: NotFoundErrorParams): ErrorResponse {
         return {
             success: false,
-            message,
-            error: "Not Found",
+            message: param.message,
+            error: "Not Found Exception",
             status: this.statusCodes.notFound,
         };
     },

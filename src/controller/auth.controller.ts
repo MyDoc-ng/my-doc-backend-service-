@@ -3,13 +3,14 @@ import { AuthService } from "../services/auth.service";
 import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
+import { responseService } from "../services/response.service";
 
 export class AuthController {
   // Register a new user
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = await AuthService.registerUser(req.body);
-      res.status(201).json(user);
+      const result = await AuthService.createUser(req.body);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
       next(error);
     }
@@ -18,8 +19,8 @@ export class AuthController {
   // Register a new user
   static async submitBiodata(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = await AuthService.submitBiodata(req.body);
-      res.status(201).json(user);
+      const result = await AuthService.submitBiodata(req.body);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
       next(error);
     }
@@ -32,11 +33,7 @@ export class AuthController {
 
       const result = await AuthService.loginUser(email, password);
 
-      if (result.accessToken) {
-        res.status(200).json(result);
-      } else {
-        res.status(401).json({ message: "Invalid credentials" });
-      }
+      res.json(result);
     } catch (error: any) {
       next(error);
     }
@@ -45,7 +42,7 @@ export class AuthController {
   static async uploadUserPhoto(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       if (!req.file) {
-        throw new BadRequestException("No file uploaded", ErrorCode.BADREQUEST);
+        throw new BadRequestException("No file selected", ErrorCode.BADREQUEST);
       }
 
       const userId = req.body.userId;
@@ -55,15 +52,9 @@ export class AuthController {
 
       photoPath = `${serverUrl}/${photoPath.replace(/\\/g, "/")}`;
 
-      const updatedUser = await AuthService.updateUserPhoto({
-        photoPath,
-        userId,
-      });
+      const result = await AuthService.updateUserPhoto({ photoPath, userId });
 
-      res.status(200).json({
-        message: "Photo uploaded successfully",
-        user: updatedUser,
-      });
+      res.json(result);
     } catch (error) {
       next(error);
     }
@@ -74,8 +65,7 @@ export class AuthController {
 
     try {
       const data = await AuthService.verifyGoogleToken(idToken); // Verify the token with Google's servers.
-
-      res.json({ message: "Google login successful", data });
+      res.json(data);
     } catch (error) {
       next(error);
     }
@@ -85,24 +75,23 @@ export class AuthController {
     try {
       const { refreshToken } = req.body;
 
-      const tokens = await AuthService.refreshAccessToken(refreshToken);
+      const result = await AuthService.refreshAccessToken(refreshToken);
 
-      return res.status(200).json({
-        status: "success",
-        data: tokens,
-      });
+      return res.status(result.status ?? 200).json(result);
     } catch (error: any) {
       next(error);
     }
   }
 
-  static async logout(req: Request, res: Response): Promise<any> {
-    const { userId } = req.body; // Remove token, only use userId
+  static async logout(req: Request, res: Response, next: NextFunction): Promise<any> {
+    const userId = req.body?.id;
 
-    // Delete all Refresh Tokens for the user
-    await prisma.refreshToken.deleteMany({ where: { userId } });
-
-    res.json({ message: "Logged out successfully" });
+    try {
+      const result = await AuthService.logout(userId);
+      res.status(result.status ?? 200).json(result);
+    } catch (error: any) {
+      next(error);
+    }
   }
 
 
@@ -136,36 +125,16 @@ export class AuthController {
   //   }
   // }
 
-  static async verifyEmail(
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<any> {
-    const { token } = req.query;
-
-    if (!token || typeof token !== "string") {
-      return res.status(400).send("Invalid verification token.");
-    }
+  static async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<any> {
+    const { token } = req.body;
 
     try {
-      const user = await prisma.user.findFirst({
-        where: { verificationToken: token },
-      });
+      const result = await AuthService.verifyEmail(token);
 
-      if (!user) {
-        return res.status(400).send("Invalid or expired verification token.");
-      }
+      return res.status(result.status ?? 200).json(result);
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { emailVerified: true, verificationToken: null },
-      });
-
-      res.status(201).json("Email verified successfully!");
     } catch (error) {
       next(error);
-      console.error("Error verifying email:", error);
-      res.status(500).send("An error occurred while verifying your email.");
     }
   }
 }

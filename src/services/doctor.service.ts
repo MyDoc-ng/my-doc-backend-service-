@@ -218,7 +218,7 @@ export class DoctorService {
   static async getAppointments(doctorId: string, status: AppointmentStatus) {
 
     if (!status) {
-      status = AppointmentStatus.UPCOMING;
+      status = AppointmentStatus.CONFIRMED;
     }
 
     // Validate status
@@ -244,17 +244,11 @@ export class DoctorService {
     });
   }
 
-  static async cancelAppointment(appointmentId: string, doctorId: string) {
-    return prisma.consultation.update({
-      where: { id: appointmentId, doctorId },
-      data: { status: AppointmentStatus.CANCELLED },
-    });
-  }
-
+ 
   static async rescheduleAppointment(appointmentId: string, doctorId: string, newDate: string) {
     return prisma.consultation.update({
       where: { id: appointmentId, doctorId },
-      data: { startTime: newDate, status: AppointmentStatus.UPCOMING },
+      data: { startTime: newDate, status: AppointmentStatus.CONFIRMED },
     });
   }
 

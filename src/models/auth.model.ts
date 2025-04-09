@@ -1,20 +1,21 @@
-import { Gender } from "@prisma/client";
+import { Gender, UserRole, UserTypes } from "@prisma/client";
 
 // Type for Register User Data
 export interface IRegisterUser {
   name: string;
   email: string;
   password: string;
-}
-export interface IRegisterDoctor {
-  name: string;
-  email: string;
-  password: string;
+  role: UserTypes;
 }
 
 export interface IUserPhoto {
   userId: string;
   photoPath: string;
+}
+
+export interface IRole {
+  // id: string;
+  name: string;
 }
 
 // Type for Login Response
@@ -23,6 +24,7 @@ export interface ILoginResponse {
   refreshToken: string;
   name: string;
   email: string;
+  roles: IRole[];
   id: string;
   photo: string | null | undefined;
 }
@@ -34,6 +36,11 @@ export interface IUserBio {
   gender: Gender; 
   phoneNumber: string;
   address: string;
+  medicalHistory: {
+    pastSurgeries: string;
+    currentMeds: string;
+    drugAllergies: string;
+  };
 }
 export interface IUpdateProfile {
   userId: string;

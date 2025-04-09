@@ -5,12 +5,7 @@ import { Prisma } from "@prisma/client";
 import { responseService } from "../services/response.service";
 import logger from "../logger";
 
-export const errorMiddleware = (
-  error: Error,
-  req: Request,
-  res: Response,
-  next: NextFunction
-): void => {
+export const errorMiddleware = (error: Error, req: Request, res: Response, next: NextFunction): void => {
   // Log the full error for debugging
   logger.error("Error caught by error handler", {
     error: {
@@ -33,7 +28,7 @@ export const errorMiddleware = (
     message = error.message;
     errorCode = error.errorCode || ErrorCode.INTERNALSERVERERROR;
     errors = error.errors;
-    
+
     logger.warn("Application error occurred", {
       statusCode: status,
       errorCode,
@@ -58,7 +53,7 @@ export const errorMiddleware = (
       default:
         message = `Prisma error: ${error.message}`;
     }
-    
+
     logger.warn("Prisma known error occurred", {
       prismaCode: error.code,
       statusCode: status,
@@ -108,6 +103,9 @@ export const errorMiddleware = (
 
   // Send formatted error response
   res.status(status).json(
-    responseService.error(message, { errorCode, errors })
-  );
+    responseService.error({
+      message: message,
+      error: error,
+      status: errorCode,
+    }));
 };

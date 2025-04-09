@@ -84,19 +84,6 @@ export class DoctorController {
     }
   }
 
-  static async register(req: Request, res: Response, next: NextFunction) {
-    try {
-      logger.info('Creating new doctor');
-
-      const doctor = await AuthService.registerDoctors(req.body);
-      logger.debug('Doctor created successfully', { doctorId: doctor.id });
-
-      res.status(201).json({ message: 'Doctor created successfully', doctor });
-    } catch (error: any) {
-      next(error);
-    }
-  }
-
   static async googleOAuth2(req: Request, res: Response, next: NextFunction) {
     const doctorRedirectUri = `${googleConfig.redirect}`;
     const doctorId = req.params.doctorId;
@@ -258,16 +245,23 @@ export class DoctorController {
     try {
       const doctorId = req.user.id;
       const appointmentId = req.params.id;
-      const result = await ConsultationService.acceptAppointment(appointmentId,doctorId);
+      const result = await ConsultationService.acceptAppointment(appointmentId, doctorId);
       res.status(200).json(result);
     } catch (error) {
       next(error);
     }
   }
 
-  static async cancelAppointment(req: Request, res: Response) {
-    await DoctorService.cancelAppointment(req.params.id, req.user.id);
-    res.status(200).json({ message: "Appointment canceled" });
+  static async cancelAppointment(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user.id;
+      const appointmentId = req.params.id;
+      const { reason, otherReason } = req.body;
+      const result = await ConsultationService.cancelAppointment({userId, appointmentId, reason, otherReason});
+      res.json(result);
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async rescheduleAppointment(req: Request, res: Response) {

@@ -1,38 +1,26 @@
 import express, { Router } from 'express';
-import { validateData } from '../middleware/validationMiddleware';
+import { validateData } from '../middleware/validation.middleware';
 import logger from '../logger';
 import { updatePasswordSchema, updateProfileSchema, userBiodataSchema, userLoginSchema, userRegisterSchema } from '../schema/user.schema';
-import { AuthController } from '../controller/auth.controller';
 import { authenticate, authorize } from '../middleware/authMiddleware';
 import { DoctorController } from '../controller/doctor.controller';
-import { upload } from '../middleware/upload';
 import { UserController } from '../controller/user.controller';
 import { appointmentSchema, cancelSchema, gopdSchema } from '../schema/appointment.schema';
 import { NotificationController } from '../controller/notification.controller';
 import { chatSchema } from '../schema/chat.schema';
 import { uploadVoice } from '../middleware/uploadVoice';
 import { reviewDoctorSchema } from '../schema/doctor.schema';
+import { emailVerified } from '../middleware/emailVerified.middleware';
 
 const router: Router = express.Router();
 
 logger.debug('Configuring user routes');
 
-//! Auth Enpoints
-// @ts-ignore
-router.post('/register', validateData(userRegisterSchema), AuthController.register);
-router.put('/submit-biodata', validateData(userBiodataSchema), AuthController.submitBiodata);
-router.put("/upload-photo", upload.single("photo"), AuthController.uploadUserPhoto);
-router.post('/google-login', AuthController.googleAuth);
-router.get('/verify-email', AuthController.verifyEmail);
-router.post('/refresh-token', AuthController.refreshToken);
-router.post('/login', validateData(userLoginSchema), AuthController.login);
-router.post('/logout', AuthController.logout);
-
 //! All Users Endpoints
 router.get('/', [authenticate], UserController.getUsers);
 
 //! Consultation Endpoints
-router.get('/appointments/pending/:userId', [authenticate, authorize(['PATIENT'])], UserController.getPendingConsultations);
+router.get('/appointments/pending/:userId', authenticate, authorize(['PATIENT']), UserController.getPendingConsultations);
 router.get('/appointments/upcoming/:userId', [authenticate, authorize(['PATIENT'])], UserController.getUpcomingConsultations);
 router.get('/appointments/completed/:userId', [authenticate, authorize(['PATIENT'])], UserController.getCompletedConsultations);
 router.get('/appointments/cancelled/:userId', [authenticate, authorize(['PATIENT'])], UserController.getCancelledConsultations);

@@ -29,6 +29,11 @@ export const userBiodataSchema = z.object({
   gender: GenderEnum,
   phoneNumber: z.string().regex(/^\+?\d{10,15}$/, "Invalid phone number"),
   address: z.string().min(5, "Address must be at least 5 characters"),
+  medicalHistory: z.object({
+    pastSurgeries: z.enum(['Yes', 'No']),
+    currentMeds: z.enum(['Yes', 'No']),
+    drugAllergies: z.enum(['Yes', 'No']),
+  }).optional(),
 });
 
 // Define the Zod schema for login
@@ -40,7 +45,7 @@ export const userLoginSchema = z.object({
 // Define the Zod schema for user photo upload
 export const UserPhotoSchema = z.object({
   photo: z.object({
-    path: z.string(), // The file path is required
+    path: z.string(),
     originalname: z.string().nonempty("File name cannot be empty"),
   }),
   userId: z.string().uuid("Invalid user ID"),

@@ -6,7 +6,7 @@ const container = new Container();
 container.bind(Logging).toSelf();
 
 // Get the logger instance
-const logger = container.get(Logging);
+export const logger = container.get(Logging);
 
 // Create an adapter to match our previous Logger interface
 const loggerAdapter = {

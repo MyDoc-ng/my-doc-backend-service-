@@ -9,6 +9,13 @@ export const checkIfUserExists = async (id: string) => {
         { email: id }
       ]
     },
+    include: {
+      roles: {
+        include: {
+          role: true
+        }
+      },
+    },
   });
 
   if (user) {

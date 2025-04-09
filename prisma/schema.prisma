@@ -29,7 +29,6 @@ enum SessionType {
 
 enum AppointmentStatus {
   PENDING
-  UPCOMING
   COMPLETED
   CONFIRMED
   CANCELLED
@@ -59,6 +58,15 @@ enum ReferralStatus {
   REJECTED
 }
 
+enum RegistrationStep {
+  CREATE_ACCOUNT
+  VERIFY
+  CREATE_BIODATA
+  PROVIDE_MEDICAL_CERTIFICATIONS
+  COMPLIANCE_AND_SECURITY_CHECK
+  PROFILE_COMPLETE
+}
+
 enum NotificationType {
   VIDEO_CALL
   NEW_MESSAGE
@@ -73,19 +81,25 @@ enum NotificationType {
 }
 
 model User {
-  id                String    @id @default(uuid())
-  role              UserTypes @default(PATIENT)
+  id                String  @id @default(uuid())
   name              String
-  email             String    @unique
+  email             String  @unique
   password          String?
-  emailVerified     Boolean   @default(false)
-  verificationToken String?
-  googleId          String?   @unique
-  facebookId        String?   @unique
+  emailVerified     Boolean @default(false)
+  verificationToken String? @unique
+  googleId          String? @unique
+  facebookId        String? @unique
+  isProfileComplete Boolean @default(false)
+  profilePicture    String?
+  dateOfBirth       String? 
+  gender            Gender  @default(MALE)
+  address           String?
+  phoneNumber       String? @unique
 
-  patientProfile PatientProfile?
-  doctorProfile  DoctorProfile?
-  adminProfile   AdminProfile?
+  patientProfile   PatientProfile?
+  doctorProfile    DoctorProfile?
+  adminProfile     AdminProfile?
+  registrationStep RegistrationStep @default(CREATE_ACCOUNT)
 
   PatientReviews          Review[]         @relation(name: "PatientReviews")
   DoctorReviews           Review[]         @relation(name: "DoctorReviews")
@@ -103,6 +117,7 @@ model User {
   patientReferral         Referral[]       @relation(name: "patientReferral")
   referringDoctorReferral Referral[]       @relation(name: "referringDoctorReferral")
   Notification            Notification[]
+  roles                   UserRole[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -112,16 +127,9 @@ model User {
 }
 
 model PatientProfile {
-  id     String @id @default(uuid())
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  dateOfBirth    DateTime?        @db.Date
-  gender         Gender           @default(MALE)
-  address        String?
-  phoneNumber    String?          @unique
-  profilePicture String?
-  medicalHistory MedicalHistory[]
+  id             String          @id @default(uuid())
+  userId         String          @unique
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   medicalRecords MedicalRecord[]
 
   createdAt DateTime @default(now())
@@ -152,7 +160,6 @@ model DoctorProfile {
   balance               Float                @default(0)
   googleCalendarId      String?
   googleRefreshToken    String?
-  profilePicture        String?
 
   specialtyId String?
   specialty   Specialty? @relation(fields: [specialtyId], references: [id], onDelete: Cascade)
@@ -173,14 +180,12 @@ model AdminProfile {
 }
 
 model MedicalHistory {
-  id               String          @id @default(uuid())
-  userId           String
-  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pastSurgeries    Boolean
-  currentMeds      Boolean
-  drugAllergies    Boolean
-  PatientProfile   PatientProfile? @relation(fields: [patientProfileId], references: [id])
-  patientProfileId String?
+  id            String @id @default(uuid())
+  userId        String @unique
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pastSurgeries String
+  currentMeds   String
+  drugAllergies String
 
   @@map("medical_histories")
 }
@@ -310,7 +315,7 @@ model DoctorAvailability {
 model Payment {
   id            String        @id @default(uuid())
   patientId     String
-  doctorId      String? 
+  doctorId      String?
   amount        Float
   status        PaymentStatus @default(PENDING)
   transactionId String        @unique
@@ -381,4 +386,20 @@ model Referral {
   referringDoctor User @relation(fields: [referringDoctorId], references: [id], name: "referringDoctorReferral")
   specialist      User @relation(fields: [specialistId], references: [id], name: "specialistReferral")
   patient         User @relation(fields: [patientId], references: [id], name: "patientReferral")
+}
+
+model Role {
+  id    String     @id @default(uuid())
+  name  UserTypes  @unique
+  users UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
 }

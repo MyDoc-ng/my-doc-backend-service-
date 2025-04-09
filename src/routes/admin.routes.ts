@@ -2,7 +2,7 @@ import express, { Router } from 'express';
 import logger from '../logger';
 import { authenticate } from '../middleware/authMiddleware';
 import { AdminController } from '../controller/admin.controller';
-import { validateData } from '../middleware/validationMiddleware';
+import { validateData } from '../middleware/validation.middleware';
 import { doctorLoginSchema, doctorSignupSchema } from '../schema/doctor.schema';
 
 const router: Router = express.Router();

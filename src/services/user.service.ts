@@ -29,7 +29,7 @@ export class UserService {
     return await prisma.consultation.findMany({
       where: {
         patientId: userId,
-        status: AppointmentStatus.UPCOMING
+        status: AppointmentStatus.CONFIRMED
       },
       orderBy: {
         startTime: 'asc'
