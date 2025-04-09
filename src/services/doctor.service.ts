@@ -35,7 +35,24 @@ interface DoctorProfile {
 export class DoctorService {
 
   static async getAllDoctors() {
-    return await prisma.user.findMany({ where: { role: UserTypes.DOCTOR } });
+    return await prisma.user.findMany({
+      where: {
+        roles: {
+          some: {
+            role: {
+              name: UserTypes.DOCTOR
+            }
+          }
+        }
+      },
+      include: {
+        roles: {
+          include: {
+            role: true 
+          }
+        }
+      }
+    });
   }
 
   static async getDoctorById(doctorId: string) {
@@ -244,7 +261,7 @@ export class DoctorService {
     });
   }
 
- 
+
   static async rescheduleAppointment(appointmentId: string, doctorId: string, newDate: string) {
     return prisma.consultation.update({
       where: { id: appointmentId, doctorId },

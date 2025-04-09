@@ -2,7 +2,6 @@ import express, { Router } from "express";
 import { DoctorController } from "../controller/doctor.controller";
 import { ConsultationController } from "../controller/consultation.controller";
 import { validateData } from "../middleware/validation.middleware";
-import { doctorLoginSchema, doctorSignupSchema } from "../schema/doctor.schema";
 import logger from '../logger';
 import { authenticate, authorize } from "../middleware/authMiddleware";
 import { uploadFiles } from "../middleware/uploadMiddleware";

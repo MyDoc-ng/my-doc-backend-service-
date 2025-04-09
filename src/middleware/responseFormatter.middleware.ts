@@ -28,7 +28,7 @@ const responseFormatter = (req: Request, res: Response, next: NextFunction) => {
     // Remove message from data if it exists
     if (data.message) delete data.message;
 
-    return originalJson.call(this, responseService.success(message, data));
+    return originalJson.call(this, responseService.success({message: message, data: data}));
   };
 
   next();

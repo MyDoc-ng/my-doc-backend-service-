@@ -120,7 +120,7 @@ export class UserController {
 
       const { reason, otherReason } = req.body;
 
-      const result = await ConsultationService.cancelAppointment(userId, appointmentId, reason, otherReason);
+      const result = await ConsultationService.cancelAppointment({userId, appointmentId, reason, otherReason});
 
       res.status(200).json({ message: "Appointment cancelled successfully", data: result });
     } catch (error) {

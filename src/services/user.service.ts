@@ -11,8 +11,24 @@ import { BadRequestException } from "../exception/bad-request";
 export class UserService {
 
   static async getUsers() {
-    const users = await prisma.user.findMany({ where: { role: UserTypes.PATIENT } });
-    return users;
+    return await prisma.user.findMany({
+      where: {
+        roles: {
+          some: {
+            role: {
+              name: UserTypes.PATIENT  // Assuming Role.name contains the role type
+            }
+          }
+        }
+      },
+      include: {
+        roles: {
+          include: {
+            role: true // Include full role details if needed
+          }
+        }
+      }
+    });
   }
 
   static async getUserById(id: string) {
@@ -160,18 +176,11 @@ export class UserService {
         data: {
           name: name,
           email: email,
-        },
-        include: { patientProfile: true }
-      });
-
-      // Update profile picture in the PatientProfile table
-      await tx.patientProfile.updateMany({
-        where: { userId: user.id },
-        data: {
-          dateOfBirth: new Date(dateOfBirth),
+          dateOfBirth: dateOfBirth,
           gender: gender,
           phoneNumber: phoneNumber
         },
+        include: { patientProfile: true }
       });
 
       return { user };
@@ -181,9 +190,9 @@ export class UserService {
       id: result.user.id,
       name: result.user.name,
       email: result.user.email,
-      gender: result.user.patientProfile?.gender,
-      dateOfBirth: result.user.patientProfile?.dateOfBirth,
-      phoneNumber: result.user.patientProfile?.phoneNumber,
+      gender: result.user.gender,
+      dateOfBirth: result.user.dateOfBirth,
+      phoneNumber: result.user.phoneNumber,
       createdAt: result.user.createdAt,
     };
   }

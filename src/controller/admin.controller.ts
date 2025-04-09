@@ -14,8 +14,7 @@ export class AdminController {
           userData: { ...req.body, password: undefined } // Log user data without sensitive information
         });
         
-        const doctor = await AuthService.registerDoctors(req.body);
-        logger.debug('Doctor created successfully', { doctorId: doctor.id });
+        const doctor = await AuthService.createUser(req.body);
   
         res.status(201).json({ message: 'Doctor created successfully', doctor });
       } catch (error: any) {
