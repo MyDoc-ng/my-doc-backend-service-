@@ -23,8 +23,6 @@ router.get("/general-practitioners", authenticate, DoctorController.generalPract
 
 router.get("/:doctorId/availability", authenticate, ConsultationController.getDoctorAvailability);
 
-// router.post('/login', validateData(doctorLoginSchema), DoctorController.login);
-router.put("/upload-cerifications", uploadFiles, DoctorController.uploadCertification);
 
 router.get("/appointments", [authenticate, authorize(['DOCTOR'])], DoctorController.getAppointments);
 router.get("/appointments/history", [authenticate, authorize(['DOCTOR'])], DoctorController.getAppointmentHistory);

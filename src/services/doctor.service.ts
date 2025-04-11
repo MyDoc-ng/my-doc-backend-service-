@@ -99,8 +99,7 @@ export class DoctorService {
         location: doctor.doctorProfile?.location,
         consultationTypes: doctor.doctorProfile?.consultationTypes,
         consultationFees: doctor.doctorProfile?.consultationFees,
-        homeVisitCharge: doctor.doctorProfile?.homeVisitCharge,
-        videoConsultationFee: doctor.doctorProfile?.videoConsultationFee,
+        homeVisitCharge: doctor.doctorProfile?.homeVisitFee,
         clinicConsultationFee: doctor.doctorProfile?.clinicConsultationFee,
         bio: doctor.doctorProfile?.bio,
         ratings: doctor.DoctorReviews.length ? doctor.DoctorReviews.reduce((acc, review) => acc + review.rating, 0) / doctor.DoctorReviews.length : 0,
@@ -214,17 +213,6 @@ export class DoctorService {
     return responseService.success({
       message: "Specializations fetched successfully",
       data: specializations,
-    });
-  }
-
-  static async saveCertificationFiles(doctorId: string, fileUrls: { cv: string | null; medicalLicense: string | null; reference: string | null }) {
-    return await prisma.doctorProfile.update({
-      where: { userId: doctorId },
-      data: {
-        cv: fileUrls.cv,
-        medicalLicense: fileUrls.medicalLicense,
-        reference: fileUrls.reference,
-      },
     });
   }
 

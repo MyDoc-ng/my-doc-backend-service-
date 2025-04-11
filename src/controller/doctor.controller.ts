@@ -159,52 +159,6 @@ export class DoctorController {
     }
   }
 
-  static async uploadCertification(req: Request, res: Response, next: NextFunction) {
-    try {
-      if (!req.files) {
-        throw new BadRequestException("No files uploaded!", ErrorCode.BADREQUEST);
-      }
-
-      const doctorId = req.body.doctorId;
-
-      if (!doctorId) {
-        throw new UnauthorizedException("Unauthorized access", ErrorCode.UNAUTHORIZED);
-      }
-
-      const files = req.files as {
-        cv?: Express.Multer.File[];
-        medicalLicense?: Express.Multer.File[];
-        reference?: Express.Multer.File[];
-      };
-
-      const serverUrl = `${req.protocol}://${req.get("host")}`;
-
-      const cvPath = `${serverUrl}/${files.cv?.[0]?.path.replace(/\\/g, "/")}`;
-      const medicalLicensePath = `${serverUrl}/${files.medicalLicense?.[0]?.path.replace(/\\/g, "/")}`;
-      const referencePath = `${serverUrl}/${files.reference?.[0]?.path.replace(/\\/g, "/")}`;
-
-      const fileUrls = {
-        cv: cvPath || null,
-        medicalLicense: medicalLicensePath || null,
-        reference: referencePath || null,
-      };
-
-      const updatedDoctor = await DoctorService.saveCertificationFiles(doctorId, fileUrls);
-
-      res.status(201).json({
-        message: "Files uploaded and doctor profile updated successfully",
-        doctor: updatedDoctor,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  // static async register(req: Request, res: Response) {
-  //   const doctor = await DoctorService.register(req.body);
-  //   res.status(201).json({ message: "Doctor registered successfully", doctor });
-  // }
-
   static async login(req: Request, res: Response) {
     const token = await DoctorService.login(req.body);
     res.status(200).json({ message: "Login successful", token });
