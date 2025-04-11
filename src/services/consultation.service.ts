@@ -8,6 +8,7 @@ import { NotFoundException } from "../exception/not-found";
 import { BadRequestException } from "../exception/bad-request";
 import { DoctorService } from "./doctor.service";
 import { calendar } from "../utils/oauthUtils";
+import { responseService } from "./response.service";
 
 interface ICancelAppointment {
   appointmentId: string;
@@ -29,19 +30,22 @@ export class ConsultationService {
     // Check if doctor exists
     const doctorExists = await checkIfUserExists(doctorId);
     if (!doctorExists) {
-      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: "Doctor not found",
+      });
     }
 
     // Check if patient exists
     const patientExists = await checkIfUserExists(patientId);
     if (!patientExists) {
-      throw new NotFoundException("Patient not found", ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: "Patient not found",
+      });
     }
 
-    const startTime = new Date(); // Current time
+    const startTime = new Date();
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
 
-    // Create appointment in database
     const appointment = await prisma.consultation.create({
       data: {
         patientId: patientId,
@@ -65,7 +69,19 @@ export class ConsultationService {
       NotificationType.APPOINTMENT_SCHEDULED
     );
 
-    return appointment;
+    return responseService.success({
+      message: "Appointment booked successfully",
+      data: {
+        id: appointment.id,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        doctorId: appointment.doctorId,
+        patientId: appointment.patientId,
+        status: appointment.status,
+        consultationType: appointment.consultationType,
+        createdAt: appointment.createdAt,
+      }
+    });
   }
 
   static async bookConsultation(data: BookingData) {
@@ -74,13 +90,17 @@ export class ConsultationService {
     // Check if doctor exists
     const doctorExists = await checkIfUserExists(doctorId);
     if (!doctorExists) {
-      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: "Doctor not found",
+      });
     }
 
     // Check if patient exists
     const patientExists = await checkIfUserExists(patientId);
     if (!patientExists) {
-      throw new NotFoundException("Patient not found", ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: "Patient not found",
+      });
     }
 
     const timeIn24Hr = new Date(`${date} ${time}`).toISOString();
@@ -95,6 +115,7 @@ export class ConsultationService {
         doctorId: doctorId,
         startTime: startTime,
         endTime: endTime,
+        status: AppointmentStatus.PENDING,
         consultationType: SessionType.VIDEO
       },
     });
@@ -112,7 +133,19 @@ export class ConsultationService {
       NotificationType.APPOINTMENT_SCHEDULED
     );
 
-    return appointment;
+    return responseService.success({
+      message: "Appointment booked successfully",
+      data: {
+        id: appointment.id,
+        startTime: appointment.startTime,
+        endTime: appointment.endTime,
+        doctorId: appointment.doctorId,
+        patientId: appointment.patientId,
+        status: appointment.status,
+        consultationType: appointment.consultationType,
+        createdAt: appointment.createdAt,
+      }
+    });
   }
 
   static async getConsultationById(consultationId: string) {
@@ -135,17 +168,33 @@ export class ConsultationService {
     // Check if doctor exists
     const doctorExists = await checkIfUserExists(doctorId);
     if (!doctorExists) {
-      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: "Doctor not found",
+      });
     }
 
     // Check if patient exists
     const patientExists = await checkIfUserExists(patientId);
     if (!patientExists) {
-      throw new NotFoundException("Patient not found", ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: "Patient not found",
+      });
     }
 
-    return await prisma.review.create({
+    const review =  await prisma.review.create({
       data: { doctorId, patientId, rating, comment },
+    });
+
+    return responseService.success({
+      message: "Review added successfully",
+      data: {
+        id: review.id,
+        doctorId: review.doctorId,
+        patientId: review.patientId,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt,
+      },
     });
   }
 
@@ -153,12 +202,22 @@ export class ConsultationService {
     // Check if doctor exists
     const doctorExists = await checkIfUserExists(doctorId);
     if (!doctorExists) {
-      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: "Doctor not found",
+      });
     }
 
-    return await prisma.review.aggregate({
+    const review =  await prisma.review.aggregate({
       where: { doctorId },
       _avg: { rating: true },
+    });
+
+    return responseService.success({
+      message: "Reviews fetched successfully",
+      data: {
+        doctorId,
+        averageRating: review._avg.rating,
+      },
     });
   }
 
@@ -194,16 +253,20 @@ export class ConsultationService {
     });
 
     if (!appointment) {
-      throw new NotFoundException("Appointment not found or unauthorized", ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: "Appointment not found or unauthorized",
+      });
     }
 
     if (appointment.status === AppointmentStatus.CANCELLED) {
-      throw new BadRequestException("Appointment already cancelled", ErrorCode.BADREQUEST);
+      return responseService.error({
+        message: "Appointment already cancelled",
+      });
     }
 
 
     // Update appointment status to 'cancelled'
-    return await prisma.consultation.update({
+    const cancelledApointment = await prisma.consultation.update({
       where: { id: appointmentId },
       data: {
         status: AppointmentStatus.CANCELLED,
@@ -211,6 +274,21 @@ export class ConsultationService {
         cancelledAt: new Date(),
         googleEventId: null,
         googleMeetLink: null,
+      },
+    });
+
+    return responseService.success({
+      message: "Appointment cancelled successfully",
+      data: {
+        id: cancelledApointment.id,
+        startTime: cancelledApointment.startTime,
+        endTime: cancelledApointment.endTime,
+        doctorId: cancelledApointment.doctorId,
+        patientId: cancelledApointment.patientId,
+        consultationType: cancelledApointment.consultationType,
+        status: cancelledApointment.status,
+        cancellationReason: cancelledApointment.cancellationReason,
+        cancelledAt: cancelledApointment.cancelledAt,
       },
     });
   }

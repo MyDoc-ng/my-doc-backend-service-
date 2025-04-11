@@ -7,8 +7,8 @@ export class NotificationController {
         try {
             const recipientId = req.user!.id;
 
-            const notifications = await NotificationService.getNotifications(recipientId);
-            res.status(200).json(notifications);
+            const result = await NotificationService.getNotifications(recipientId);
+            res.status(result.status ?? 200).json(result);
         } catch (error) {
             next(error);
         }
@@ -18,8 +18,8 @@ export class NotificationController {
     static async markNotificationAsRead(req: Request, res: Response, next: NextFunction) {
         try {
             const { id } = req.params;
-            await NotificationService.markAsRead(id);
-            res.status(200).json({ message: "Notification marked as read" });
+            const result = await NotificationService.markAsRead(id);
+            res.status(result.status ?? 200).json(result);
         } catch (error) {
             next(error);
         }
@@ -30,8 +30,8 @@ export class NotificationController {
         try {
             const recipientId = req.user!.id;
 
-            await NotificationService.markAllAsRead(recipientId);
-            res.status(200).json({ message: "All notifications marked as read" });
+            const notifications = await NotificationService.markAllAsRead(recipientId);
+            res.status(notifications.status ?? 200).json(notifications);
         } catch (error) {
             next(error);
         }

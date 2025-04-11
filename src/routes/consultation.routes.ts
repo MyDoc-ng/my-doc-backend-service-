@@ -6,7 +6,7 @@ import { authenticate } from "../middleware/authMiddleware";
 
 const router: Router = express.Router();
 
-router.get('/appointments/doctor/:doctorId', [authenticate], ConsultationController.getDoctorConsultations);
+router.get('/appointments/doctor/:doctorId',authenticate, ConsultationController.getDoctorConsultations);
 
 // router.get(
 //   "/appointments",

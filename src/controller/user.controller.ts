@@ -21,32 +21,33 @@ export class UserController {
 
   static async getPendingConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
-      const userConsultations = await UserService.getPendingConsultations(req.params.userId);
-      res.status(200).json(userConsultations);
+      const result = await UserService.getPendingConsultations(req.params.userId);
+      res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error)
     }
   }
   static async getUpcomingConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
-      const userConsultations = await UserService.getUpcomingConsultations(req.params.userId);
-      res.status(200).json(userConsultations);
+      const result = await UserService.getUpcomingConsultations(req.params.userId);
+      res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error)
     }
   }
   static async getCompletedConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
-      const userConsultations = await UserService.getCompletedConsultations(req.params.userId);
-      res.status(200).json(userConsultations);
+      const result = await UserService.getCompletedConsultations(req.params.userId);
+      res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error)
     }
   }
+
   static async getCancelledConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
-      const userConsultations = await UserService.getCancelledConsultations(req.params.userId);
-      res.status(200).json(userConsultations);
+      const result = await UserService.getCancelledConsultations(req.params.userId);
+      res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error)
     }
@@ -55,10 +56,9 @@ export class UserController {
   static async generalPractitioners(req: Request, res: Response, next: NextFunction) {
     try {
       logger.info('Fetching general practitioners');
-      const doctors = await DoctorService.getGeneralPractitioners();
-      logger.debug('General practitioners fetched successfully', { count: doctors.length });
+      const result = await DoctorService.getGeneralPractitioners();
 
-      res.status(200).json(doctors);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
 
       next(error);
@@ -68,10 +68,9 @@ export class UserController {
   static async getSpecializations(req: Request, res: Response, next: NextFunction) {
     try {
       logger.info('Fetching general practitioners');
-      const doctors = await DoctorService.getSpecializations();
-      logger.debug('General practitioners fetched successfully', { count: doctors.length });
+      const result = await DoctorService.getSpecializations();
 
-      res.status(200).json(doctors);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
 
       next(error);
@@ -84,21 +83,18 @@ export class UserController {
       const { doctorId } = req.params;
 
       logger.info('Fetching doctor by id', { doctorId });
-      const doctor = await DoctorService.getDoctorById(doctorId);
+      const result = await DoctorService.getDoctorById(doctorId);
 
-      logger.debug('Doctor fetched successfully', { doctor });
-
-      res.status(200).json(doctor);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
-
       next(error);
     }
   }
 
   static async bookGOPDConsultation(req: Request, res: Response, next: NextFunction) {
     try {
-      const consultation = await ConsultationService.bookGOPDConsultation(req.body);
-      res.status(200).json(consultation);
+      const result = await ConsultationService.bookGOPDConsultation(req.body);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
       next(error)
     }
@@ -106,8 +102,8 @@ export class UserController {
 
   static async bookConsultation(req: Request, res: Response, next: NextFunction) {
     try {
-      const consultation = await ConsultationService.bookConsultation(req.body);
-      res.status(200).json(consultation);
+      const result = await ConsultationService.bookConsultation(req.body);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
       next(error)
     }
@@ -120,9 +116,9 @@ export class UserController {
 
       const { reason, otherReason } = req.body;
 
-      const result = await ConsultationService.cancelAppointment({userId, appointmentId, reason, otherReason});
+      const result = await ConsultationService.cancelAppointment({ userId, appointmentId, reason, otherReason });
 
-      res.status(200).json({ message: "Appointment cancelled successfully", data: result });
+      res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error)
     }
@@ -132,8 +128,8 @@ export class UserController {
     try {
       const validatedData = req.body;
 
-      const newMessage = await ChatService.sendMessage(validatedData);
-      res.status(201).json({ success: true, message: newMessage });
+      const result = await ChatService.sendMessage(validatedData);
+      res.status(result.status ?? 201).json(result);
     } catch (error: any) {
       next(error)
     }
@@ -143,6 +139,7 @@ export class UserController {
 
     try {
       if (!req.file) {
+
         throw new BadRequestException("No voice file uploaded", ErrorCode.BADREQUEST);
       }
 
@@ -156,8 +153,8 @@ export class UserController {
         voiceUrl: `${serverUrl}/uploads/voicenotes/${req.file.filename}`,
       };
 
-      const newMessage = await ChatService.uploadVoiceMessage(messageData);
-      res.status(201).json({ success: true, message: newMessage });
+      const result = await ChatService.uploadVoiceMessage(messageData);
+      res.status(result.status ?? 201).json(result);
     } catch (error: any) {
       next(error)
     }
@@ -167,8 +164,8 @@ export class UserController {
     const { userId } = req.params;
 
     try {
-      const messages = await ChatService.getMessages(userId);
-      res.json({ success: true, messages });
+      const result = await ChatService.getMessages(userId);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
       next(error)
     }
@@ -178,9 +175,9 @@ export class UserController {
     const { doctorId, patientId, rating, comment } = req.body;
 
     try {
-      const review = await ConsultationService.reviewDoctor(doctorId, patientId, rating, comment);
+      const result = await ConsultationService.reviewDoctor(doctorId, patientId, rating, comment);
 
-      res.status(201).json({ message: "Review submitted successfully!", review });
+      res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error)
     }
@@ -190,9 +187,9 @@ export class UserController {
     const { doctorId } = req.params;
 
     try {
-      const reviews = await ConsultationService.getDoctorReviews(doctorId);
+      const result = await ConsultationService.getDoctorReviews(doctorId);
 
-      res.status(200).json(reviews);
+      res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error)
     }
@@ -202,13 +199,9 @@ export class UserController {
     try {
       const specialtyName = req.params.specialty;
 
-      if (!specialtyName) {
-        res.status(400).json({ message: "Specialty is required" });
-      }
+      const result = await DoctorService.getDoctorsBySpecialty(specialtyName);
 
-      const doctors = await DoctorService.getDoctorsBySpecialty(specialtyName);
-
-      res.status(200).json(doctors);
+      res.status(result.status ?? 200).json(result);
 
     } catch (error) {
       next(error)
@@ -217,8 +210,8 @@ export class UserController {
 
   static async updateProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const user = await UserService.updateProfile(req.body);
-      res.status(201).json(user);
+      const result = await UserService.updateProfile(req.body);
+      res.status(result.status ?? 201).json(result);
     } catch (error: any) {
       next(error);
     }
@@ -229,9 +222,9 @@ export class UserController {
       const { currentPassword, newPassword } = req.body;
       const userId = req.user.id;
 
-      await UserService.changePassword({ currentPassword, newPassword, userId });
+      const result = await UserService.changePassword({ currentPassword, newPassword, userId });
 
-      res.status(201).json({ message: "Password changed successfully." });
+      res.status(result.status ?? 201).json(result);
     } catch (error: any) {
       next(error);
     }
@@ -241,9 +234,9 @@ export class UserController {
     try {
       const userId = req.user.id;
 
-      await UserService.deleteUserById(userId);
+      const result = await UserService.deleteUserById(userId);
 
-      res.json({ message: "Account deleted successfully." });
+      res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error);
     }

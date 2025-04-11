@@ -97,6 +97,17 @@ export class AuthService {
       });
     }
 
+    // Check if user with the phone number already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { phoneNumber },
+    });
+
+    if (existingUser && existingUser.id !== userId) {
+      return responseService.error({
+        message: "Phone number already exists",
+      });
+    }
+
     const updatedUser = await prisma.$transaction(async (prisma) => {
       // First update/create the patient profile
       const user = await prisma.user.update({
@@ -153,12 +164,12 @@ export class AuthService {
         dateOfBirth: updatedUser.dateOfBirth,
         roles: updatedUser.roles,
         photo: updatedUser.photo,
+        registrationStep: updatedUser.registerationStep,
       }
     });
   }
 
 
-  // Login user and generate a JWT token
   static async loginUser(email: string, password: string): Promise<any> {
     const user = await prisma.user.findUnique({
       where: { email },
@@ -168,24 +179,38 @@ export class AuthService {
         email: true,
         password: true,
         profilePicture: true,
+        registrationStep: true,
+        emailVerified: true,
         roles: {
           include: { role: true },
         },
-        patientProfile: true
+        patientProfile: true,
+        doctorProfile: true,
+        adminProfile: true,
       },
     });
 
     if (!user) {
       return responseService.notFoundError({
-        message: "Incorrect password",
+        message: "Account Not Found",
       });
     }
 
-    if (!user?.roles?.length) {
-      return responseService.error({
-        message: "You have not completed your account creation, please continue"
-      });
-    }
+    // Check if the user has completed their account creation
+    // if (user?.registrationStep !== RegistrationStep.PROFILE_COMPLETE) {
+    //   return responseService.forbiddenError({
+    //     message: "You have not completed your account creation, please continue",
+    //     data: {
+    //       id: user.id,
+    //       name: user.name,
+    //       email: user.email,
+    //       photo: user.profilePicture,
+    //       registrationStep: user.registrationStep,
+    //       roles: transformUserRoles(user.roles),
+    //       emailVerified: user.emailVerified,
+    //     },
+    //   });
+    // }
 
     const isPasswordValid = await bcrypt.compare(password, user.password!);
 
@@ -362,7 +387,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         photo: user.profilePicture,
-        RegistrationStep: RegistrationStep.VERIFY,
+        RegistrationStep: RegistrationStep.VERIFY_EMAIL,
         roles: transformUserRoles(user.roles),
       }
     });

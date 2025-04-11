@@ -1,4 +1,5 @@
 import { prisma } from "../prisma/prisma";
+import { responseService } from "./response.service";
 
 export class SearchService {
   async searchKeyWords(keyword: string) {
@@ -32,10 +33,13 @@ export class SearchService {
       })
     ]);
 
-    return {
-      doctors,
-      specialties,
-    };
+    return responseService.success({
+      message: "Search results fetched successfully",
+      data: {
+        doctors,
+        specialties,
+      }
+    });
   }
 
 }

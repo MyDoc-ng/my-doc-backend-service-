@@ -12,7 +12,7 @@
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:studio": "npx prisma studio",
     "prisma:reset": "npx prisma migrate reset --force",
-    "prisma:seed": "npx prisma db seed --preview-feature",
+    "prisma:seed": "npx prisma db seed",
     "prisma:drop": "npx prisma migrate reset --force"
   },
   "prisma": {

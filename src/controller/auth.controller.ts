@@ -33,7 +33,7 @@ export class AuthController {
 
       const result = await AuthService.loginUser(email, password);
 
-      res.json(result);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
       next(error);
     }

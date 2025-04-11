@@ -8,6 +8,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { computeDoctorAvailability } from "../utils/computeDoctorAvailability";
 import { BadRequestException } from "../exception/bad-request";
+import { responseService } from "./response.service";
 
 interface FilterDoctor {
   specialization?: string;
@@ -48,7 +49,7 @@ export class DoctorService {
       include: {
         roles: {
           include: {
-            role: true 
+            role: true
           }
         }
       }
@@ -59,13 +60,21 @@ export class DoctorService {
     const doctor = await prisma.user.findUnique({
       where: { id: doctorId },
       include: {
-        doctorProfile: true,
+        doctorProfile: {
+          include: {
+            specialty: true,
+          },
+        },
+        DoctorReviews: true,
+        PatientReviews: true,
       },
     });
 
     if (!doctor) {
       logger.error('Doctor not found', { doctorId });
-      throw new NotFoundException('Doctor not found', ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: "Doctor not found",
+      });
     }
 
     const patientsTreated = await prisma.consultation.groupBy({
@@ -76,11 +85,29 @@ export class DoctorService {
       },
     });
 
-    return {
-      ...doctor,
-      patientsTreated: patientsTreated.length,
-      isAvailable: computeDoctorAvailability(doctor.doctorProfile!.isOnline, doctor.doctorProfile!.lastActive, 7), // Uses threshold of 7 days
-    }
+    return responseService.success({
+      message: "Doctor fetched successfully",
+      data: {
+        id: doctor.id,
+        name: doctor.name,
+        email: doctor.email, 
+        gender: doctor.gender,
+        phone: doctor.phoneNumber,
+        profilePicture: doctor.profilePicture,
+        specialty: doctor.doctorProfile?.specialty,
+        experience: doctor.doctorProfile?.experience,
+        location: doctor.doctorProfile?.location,
+        consultationTypes: doctor.doctorProfile?.consultationTypes,
+        consultationFees: doctor.doctorProfile?.consultationFees,
+        homeVisitCharge: doctor.doctorProfile?.homeVisitCharge,
+        videoConsultationFee: doctor.doctorProfile?.videoConsultationFee,
+        clinicConsultationFee: doctor.doctorProfile?.clinicConsultationFee,
+        bio: doctor.doctorProfile?.bio,
+        ratings: doctor.DoctorReviews.length ? doctor.DoctorReviews.reduce((acc, review) => acc + review.rating, 0) / doctor.DoctorReviews.length : 0,
+        patientsTreated: patientsTreated.length,
+        isAvailable: computeDoctorAvailability(doctor.doctorProfile!?.isOnline, doctor.doctorProfile!?.lastActive, 7), // Uses threshold of 7 days
+      },
+    });
   }
 
   static async getTopDoctors() {
@@ -165,12 +192,15 @@ export class DoctorService {
       isAvailable: computeDoctorAvailability(doctor.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
     }));
 
-    return transformedDoctors;
+    return responseService.success({
+      message: "General practitioners fetched successfully",
+      data: transformedDoctors,
+    });
 
   }
 
   static async getSpecializations() {
-    return await prisma.specialty.findMany({
+    const specializations = await prisma.specialty.findMany({
       where: {
         name: {
           not: "General Practitioner",
@@ -179,6 +209,11 @@ export class DoctorService {
       include: {
         DoctorProfile: true,
       },
+    });
+
+    return responseService.success({
+      message: "Specializations fetched successfully",
+      data: specializations,
     });
   }
 
@@ -194,6 +229,12 @@ export class DoctorService {
   }
 
   static async getDoctorsBySpecialty(specialtyName: string) {
+
+    if (!specialtyName) {
+      return responseService.error({
+        message: "Specialty name or ID is required",
+      });
+    }
     // Fetch doctors by specialty
     const doctors = await prisma.doctorProfile.findMany({
       where: {
@@ -211,10 +252,19 @@ export class DoctorService {
     });
 
     if (!doctors.length) {
-      throw new NotFoundException(`No doctors found for this ${specialtyName}`, ErrorCode.NOTFOUND);
+      return responseService.notFoundError({
+        message: `No doctors found for ${specialtyName}`,
+        data: null,
+      });
     }
 
-    return doctors;
+    return responseService.success({
+      message: "Doctors fetched successfully",
+      data: doctors.map((doctor) => ({
+        ...doctor,
+        isAvailable: computeDoctorAvailability(doctor.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
+      })),
+    });
   }
 
   static async login(data: any) {

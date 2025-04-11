@@ -5,6 +5,7 @@ import { prisma } from "../prisma/prisma";
 import { ChatMessageData, VoiceMessageData } from "../models/chatMessage.model";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 import { clients } from "../configs/websocket";
+import { responseService } from "./response.service";
 
 export class ChatService {
 
@@ -12,13 +13,17 @@ export class ChatService {
 
         const senderExists = await checkIfUserExists(data.senderId);
         if (!senderExists) {
-            throw new NotFoundException("Sender not found", ErrorCode.NOTFOUND);
+            return responseService.notFoundError({
+                message: "Sender not found",
+            });
         }
 
         // Check if receiver exists
         const receiverExists = await checkIfUserExists(data.receiverId);
         if (!receiverExists) {
-            throw new NotFoundException("Receiver not found", ErrorCode.NOTFOUND);
+            return responseService.notFoundError({
+                message: "Receiver not found",
+            });
         }
 
         // Save message in database
@@ -32,7 +37,10 @@ export class ChatService {
             receiverSocket.send(JSON.stringify(newMessage)); // Send message in real-time
         }
 
-        return newMessage;
+        return responseService.success({
+            message: "Message sent successfully",
+            data: newMessage,
+        });
 
     }
 
@@ -40,10 +48,12 @@ export class ChatService {
 
         const userExists = await checkIfUserExists(userId);
         if (!userExists) {
-            throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
+            return responseService.notFoundError({
+                message: "User not found",
+            });
         }
 
-        return await prisma.chatMessage.findMany({
+        const message = await prisma.chatMessage.findMany({
             where: {
                 OR: [
                     { senderId: userId },
@@ -53,6 +63,10 @@ export class ChatService {
             orderBy: { createdAt: "asc" },
         });
 
+        return responseService.success({
+            message: "Messages fetched successfully",
+            data: message,
+        });
     }
 
     static async getDoctorMessages(doctorId: string) {
@@ -72,13 +86,17 @@ export class ChatService {
 
         const senderExists = await checkIfUserExists(data.senderId);
         if (!senderExists) {
-            throw new NotFoundException("Sender not found", ErrorCode.NOTFOUND);
+            return responseService.notFoundError({
+                message: "Sender not found",
+            });
         }
 
         // Check if receiver exists
         const receiverExists = await checkIfUserExists(data.receiverId);
         if (!receiverExists) {
-            throw new NotFoundException("Receiver not found", ErrorCode.NOTFOUND);
+            return responseService.notFoundError({
+                message: "Receiver not found",
+            });
         }
 
         const { senderId, receiverId, voiceUrl } = data;
@@ -97,8 +115,10 @@ export class ChatService {
             receiverSocket.send(JSON.stringify(newMessage));
         }
 
-        return newMessage;
+        return responseService.success({
+            message: "Chat message created Successfully",
+            data: newMessage,
+            status: 201
+        });
     };
-
-
 }

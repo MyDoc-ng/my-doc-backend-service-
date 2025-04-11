@@ -56,7 +56,6 @@ export class DoctorController {
     try {
       logger.info('Fetching general practitioners');
       const doctors = await DoctorService.getGeneralPractitioners();
-      logger.debug('General practitioners fetched successfully', { count: doctors.length });
 
       res.json(doctors);
     } catch (error: any) {

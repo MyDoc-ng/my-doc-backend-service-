@@ -28,6 +28,11 @@ interface NotFoundErrorParams {
 interface SuccessParams {
     message: string;
     data: any;
+    status?: number;
+}
+interface ForbiddenErrorParams {
+    message: string;
+    data?: any;
 }
 
 export const responseService = {
@@ -50,7 +55,7 @@ export const responseService = {
             success: true,
             message: param.message,
             data: param.data,
-            status: this.statusCodes.ok,
+            status: param.status ?? this.statusCodes.ok,
         };
     },
 
@@ -73,11 +78,12 @@ export const responseService = {
         };
     },
 
-    forbiddenError(message: string): ErrorResponse {
+    forbiddenError(param: ForbiddenErrorParams): ErrorResponse {
         return {
             success: false,
-            message,
+            message: param.message,
             error: "Forbidden",
+            data: param.data,
             status: this.statusCodes.forbidden,
         };
     },
