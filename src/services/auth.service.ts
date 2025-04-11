@@ -7,6 +7,7 @@ import { NotFoundException } from "../exception/not-found";
 import {
   IRegisterUser,
   IUserBio,
+  IUserDocumentFiles,
   IUserPhoto,
 } from "../models/auth.model";
 import { OAuth2Client } from "google-auth-library";
@@ -17,6 +18,7 @@ import { EmailTemplates } from "../emails/emailTemplates";
 import { RegistrationStep, UserTypes } from "@prisma/client";
 import { responseService } from "./response.service";
 import { transformUserRoles } from "../utils/role.utils";
+import { Request } from "express";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export class AuthService {
@@ -117,7 +119,7 @@ export class AuthService {
           gender,
           phoneNumber,
           address,
-          registrationStep: RegistrationStep.CREATE_BIODATA,
+          registrationStep: RegistrationStep.PROFILE_COMPLETE,
         },
         include: {
           roles: {
@@ -261,12 +263,15 @@ export class AuthService {
       data: { profilePicture: photoPath },
     });
 
-    return {
-      id: updatedUser.id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      photo: updatedUser.profilePicture,
-    };
+    return responseService.success({
+      message: "Photo Uploaded successfully",
+      data: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        photo: updatedUser.profilePicture,
+      }
+    });
   }
 
   static async verifyGoogleToken(idToken: string): Promise<any> {
@@ -424,12 +429,12 @@ export class AuthService {
       });
     }
 
-    
+
     const storedToken = await prisma.refreshToken.findUnique({
       where: { token: refreshToken },
       include: { user: true },
     });
-    
+
     if (!storedToken) {
       return responseService.notFoundError({
         message: "Refresh not found",
@@ -491,7 +496,7 @@ export class AuthService {
   }
 
   static async sendVerificationEmail(name: string, email: string, verificationToken: string): Promise<void> {
-    const baseUrl = process.env.FRONTEND_APP_URL || "http://localhost:8000"; // Default fallback
+    const baseUrl = process.env.FRONTEND_APP_URL || "http://localhost:8000";
 
     const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
 
@@ -537,6 +542,49 @@ export class AuthService {
     });
 
     return { message: `User assigned role ${roleName}` };
+  }
+
+  static async saveUserDocuments(userId: string, files: IUserDocumentFiles, req: Request) {
+
+    const serverUrl = `${req.protocol}://${req.get("host")}`;
+
+    const formatPath = (file?: Express.Multer.File[]) =>
+      file?.[0] ? `${serverUrl}/${file[0].path.replace(/\\/g, "/")}` : undefined;
+
+    const data = {
+      userId,
+      cvDoc: formatPath(files.cvDoc),
+      medicalLicenseDoc: formatPath(files.medicalLicenseDoc),
+      referenceDoc: formatPath(files.referenceDoc),
+      specializationCertDoc: formatPath(files.specializationCertDoc),
+      idDoc: formatPath(files.idDoc),
+    };
+
+    const userExists = await checkIfUserExists(userId);
+
+    if (!userExists) {
+      return responseService.notFoundError({
+        message: "User not found",
+      });
+    }
+
+    const saved = await prisma.doctorProfile.upsert({
+      where: { userId },
+      update: data,
+      create: data,
+      include: { user: true }
+    });
+
+    return responseService.success({
+      message: "Documents uploaded successfully",
+      data: {
+        id: saved.userId,
+        userId: saved.userId,
+        name: saved.user.name,
+        email: saved.user.email,
+        cv: saved.cvDoc
+      }
+    });
   }
 }
 

@@ -2,7 +2,12 @@ import multer from "multer";
 import path from "path";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
+import fs from 'fs';
 
+const uploadPath = "uploads";
+if (!fs.existsSync(uploadPath)) {
+    fs.mkdirSync(uploadPath, { recursive: true });
+}
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/"); // Specify the uploads directory

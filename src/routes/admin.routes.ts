@@ -1,6 +1,6 @@
 import express, { Router } from 'express';
 import logger from '../logger';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate } from '../middleware/auth.middleware';
 import { AdminController } from '../controller/admin.controller';
 import { validateData } from '../middleware/validation.middleware';
 import { doctorLoginSchema, doctorSignupSchema } from '../schema/doctor.schema';

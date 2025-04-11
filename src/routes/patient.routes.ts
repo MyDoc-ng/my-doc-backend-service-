@@ -1,7 +1,7 @@
 import express, { Router } from 'express';
 import { validateData } from '../middleware/validation.middleware';
 import logger from '../logger';
-import { authenticate, authorize } from '../middleware/authMiddleware';
+import { authenticate, authorize } from '../middleware/auth.middleware';
 import { DoctorController } from '../controller/doctor.controller';
 import { UserController } from '../controller/user.controller';
 import { appointmentSchema, cancelSchema, gopdSchema } from '../schema/appointment.schema';

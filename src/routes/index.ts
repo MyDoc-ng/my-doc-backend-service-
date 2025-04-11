@@ -8,7 +8,7 @@ import doctorRoutes from './doctor.routes';
 import adminRoutes from './admin.routes';
 import logger from '../logger';
 import { SearchController } from '../controller/search.controller';
-import { authenticate } from '../middleware/authMiddleware';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router: Router = express.Router();
 

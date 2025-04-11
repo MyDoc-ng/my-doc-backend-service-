@@ -1,10 +1,15 @@
 import multer from "multer";
 import path from "path";
+import fs from 'fs';
 
+const uploadPath = "uploads/documents";
+if (!fs.existsSync(uploadPath)) {
+    fs.mkdirSync(uploadPath, { recursive: true });
+}
 // Define storage configuration
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "uploads/docs");
+        cb(null, "uploads/documents");
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
@@ -35,7 +40,9 @@ const upload = multer({
 
 // Middleware to handle multiple files
 export const uploadFiles = upload.fields([
-    { name: "cv", maxCount: 1 },
-    { name: "medicalLicense", maxCount: 1 },
-    { name: "reference", maxCount: 1 },
+    { name: "idDoc", maxCount: 1 },
+    { name: "cvDoc", maxCount: 1 },
+    { name: "medicalLicenseDoc", maxCount: 1 },
+    { name: "specializationCertDoc", maxCount: 1 },
+    { name: "referenceDoc", maxCount: 1 },
 ]);

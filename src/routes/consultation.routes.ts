@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { ConsultationController } from "../controller/consultation.controller";
-import { authenticate } from "../middleware/authMiddleware";
+import { authenticate } from "../middleware/auth.middleware";
 
 // const appointmentController = new AppointmentController();
 

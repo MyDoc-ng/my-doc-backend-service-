@@ -1,7 +1,7 @@
 import express, { Router } from "express";
 import { validateData } from "../middleware/validation.middleware";
 import { updatePasswordSchema, updateProfileSchema } from "../schema/user.schema";
-import { authenticate } from "../middleware/authMiddleware";
+import { authenticate } from "../middleware/auth.middleware";
 import { UserController } from "../controller/user.controller";
 
 const router: Router = express.Router();

@@ -3,7 +3,7 @@ import { DoctorController } from "../controller/doctor.controller";
 import { ConsultationController } from "../controller/consultation.controller";
 import { validateData } from "../middleware/validation.middleware";
 import logger from '../logger';
-import { authenticate, authorize } from "../middleware/authMiddleware";
+import { authenticate, authorize } from "../middleware/auth.middleware";
 import { uploadFiles } from "../middleware/uploadMiddleware";
 import { cancelSchema } from "../schema/appointment.schema";
 

@@ -13,6 +13,14 @@ export interface IUserPhoto {
   photoPath: string;
 }
 
+export interface IUserDocumentFiles {
+  cvDoc?: Express.Multer.File[];
+  medicalLicenseDoc?: Express.Multer.File[];
+  referenceDoc?: Express.Multer.File[];
+  specializationCertDoc?: Express.Multer.File[];
+  idDoc?: Express.Multer.File[];
+}
+
 export interface IRole {
   // id: string;
   name: string;
@@ -33,7 +41,7 @@ export interface ILoginResponse {
 export interface IUserBio {
   userId: string;
   dateOfBirth: string; // Ensure it is a valid date string
-  gender: Gender; 
+  gender: Gender;
   phoneNumber: string;
   address: string;
   medicalHistory: {
@@ -45,7 +53,7 @@ export interface IUserBio {
 export interface IUpdateProfile {
   userId: string;
   dateOfBirth: string; // Ensure it is a valid date string
-  gender: Gender; 
+  gender: Gender;
   phoneNumber: string;
   name: string;
   email: string;
@@ -53,5 +61,5 @@ export interface IUpdateProfile {
 export interface IChangePassword {
   userId: string;
   newPassword: string;
-  currentPassword: string; 
+  currentPassword: string;
 }

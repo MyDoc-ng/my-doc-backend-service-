@@ -1,5 +1,5 @@
 import express, { Router } from "express";
-import { authenticate } from "../middleware/authMiddleware";
+import { authenticate } from "../middleware/auth.middleware";
 import { NotificationController } from "../controller/notification.controller";
 
 const router: Router = express.Router();

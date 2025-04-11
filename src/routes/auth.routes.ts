@@ -3,7 +3,8 @@ import { validateData } from "../middleware/validation.middleware";
 import { userBiodataSchema, userLoginSchema, userRegisterSchema } from "../schema/user.schema";
 import { AuthController } from "../controller/auth.controller";
 import { upload } from "../middleware/upload";
-import { authenticate } from "../middleware/authMiddleware";
+import { authenticate } from "../middleware/auth.middleware";
+import { uploadFiles } from "../middleware/uploadMiddleware";
 
 const router: Router = express.Router();
 //@ts-ignore
@@ -17,4 +18,6 @@ router.post('/verify-email', AuthController.verifyEmail);
 router.post('/refresh-token', AuthController.refreshToken);
 router.post('/logout', authenticate, AuthController.logout);
 
+// ! Only Doctors
+router.put('/upload-documents', uploadFiles, AuthController.uploadDocuments);
 export default router;

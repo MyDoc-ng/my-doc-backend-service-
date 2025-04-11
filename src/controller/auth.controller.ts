@@ -59,6 +59,22 @@ export class AuthController {
     }
   }
 
+  static async uploadDocuments(req: Request, res: Response, next: NextFunction): Promise<any> {
+    try {
+      const userId = req.body.userId;
+      const files = req.files as {
+        [fieldname: string]: Express.Multer.File[];
+      };
+
+      const result = await AuthService.saveUserDocuments(userId, files, req);
+
+      res.status(result.status ?? 200).json(result);
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async googleAuth(req: Request, res: Response, next: NextFunction): Promise<any> {
     const { idToken } = req.body;
 
