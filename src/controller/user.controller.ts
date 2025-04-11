@@ -234,12 +234,14 @@ export class UserController {
     try {
       const userId = req.user.id;
 
-      const result = await UserService.deleteUserById(userId);
+      const result = await UserService.deleteUserAccount(userId);
 
       res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error);
     }
   }
+
+  
 
 }

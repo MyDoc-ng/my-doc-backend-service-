@@ -3,7 +3,6 @@ import { AuthService } from "../services/auth.service";
 import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
-import { responseService } from "../services/response.service";
 
 export class AuthController {
   // Register a new user

@@ -6,7 +6,6 @@ import { ChatMessageData } from "../models/chatMessage.model";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 import bcrypt from "bcrypt";
 import { IChangePassword, IUpdateProfile } from "../models/auth.model";
-import { BadRequestException } from "../exception/bad-request";
 import { responseService } from "./response.service";
 
 export class UserService {
@@ -269,22 +268,146 @@ export class UserService {
     })
   }
 
-  static async deleteUserById(userId: string): Promise<any> {
-    const userExists = await checkIfUserExists(userId);
+  // static async deleteUserById(userId: string): Promise<any> {
+  //   const userExists = await prisma.user.findUnique({
+  //     where: { id: userId },
+  //     select: {
+  //       id: true,
+  //       createdAt: true,
+  //       name: true,
+  //       email: true,
+  //       password: true,
+  //       registrationStep: true,
+  //       roles: {
+  //         include: { role: true }
+  //       },
 
-    if (!userExists) {
-      return responseService.notFoundError({
-        message: "User not found",
+  //     }
+  //   });
+
+  //   if (!userExists) {
+  //     return responseService.notFoundError({
+  //       message: "User not found",
+  //     });
+  //   }
+
+  //   return await prisma.$transaction(async (tx) => {
+  //     // 1. Archive the user data first
+  //     await tx.archivedUser.create({
+  //       data: {
+  //         id: userExists.id,
+  //         email: userExists.email,
+  //         name: userExists.name,
+  //         password: userExists.password!, // Consider if you really need to store this
+  //         archivedAt: new Date(),
+  //         archivedReason: 'User requested account deletion',
+  //         originalRoles: JSON.stringify(userExists.roles.map(r => ({
+  //           roleId: r.roleId,
+  //           roleName: r.role.name
+  //         }))),
+  //         metadata: JSON.stringify({
+  //           registrationStep: userExists.registrationStep,
+  //           createdAt: userExists.createdAt,
+  //         })
+  //       }
+  //     });
+
+  //     await tx.chatMessage.deleteMany({
+  //       where: { senderId: userId }
+  //     });
+
+  //     await tx.payment.deleteMany({
+  //       where: { OR: [{ patientId: userId }, { doctorId: userId }] }
+  //     });
+
+  //     await tx.consultation.deleteMany({
+  //       where: { OR: [{ patientId: userId }, { doctorId: userId }] }
+  //     });
+
+  //     await tx.user.delete({
+  //       where: { id: userId },
+  //     });
+
+  //     return responseService.success({
+  //       message: "Account deleted successfully.",
+  //       data: {}
+  //     });
+  //   });
+  // }
+
+  static async deleteUserAccount(userId: string, reason?: string) {
+
+    try {
+    
+      return await prisma.$transaction(async (tx) => {
+        // Archive the user
+        const user = await tx.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            createdAt: true,
+            name: true,
+            email: true,
+            password: true,
+            registrationStep: true,
+            roles: {
+              include: { role: true }
+            },
+          }
+        });
+
+        if (!user) {
+          return responseService.error({
+            message: "User not found",
+          })
+        }
+
+        // Create archive record
+        await tx.archivedUser.create({
+          data: {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            password: user.password!, // Consider if you really need to store this
+            archivedAt: new Date(),
+            archivedReason: 'User requested account deletion',
+            originalRoles: JSON.stringify(user.roles.map(r => ({
+              roleId: r.roleId,
+              roleName: r.role.name
+            }))),
+            metadata: JSON.stringify({
+              registrationStep: user.registrationStep,
+              createdAt: user.createdAt,
+            })
+          }
+        });
+
+        // You need to do this for each table that references users
+        await tx.consultation.updateMany({
+          where: { patientId: userId },
+          data: { dPatientId: userId }
+        });
+
+        await tx.chatMessage.updateMany({
+          where: { senderId: userId },
+          data: { dSenderId: userId }
+        });
+
+        await tx.payment.updateMany({
+          where: { patientId: userId },
+          data: { dPatientId: userId }
+        });
+
+        // Delete the original user
+        await tx.user.delete({ where: { id: userId } });
+
+        return responseService.success({
+          message: "Account deleted successfully.",
+          data: {}
+        });
       });
+    } catch (error) {
+      throw error;
     }
-
-    await prisma.user.delete({
-      where: { id: userId },
-    });
-
-    return responseService.success({
-      message: "Account deleted successfully.",
-      data: {}
-    })
   }
 }

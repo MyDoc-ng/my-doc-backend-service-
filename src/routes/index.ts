@@ -3,6 +3,7 @@ import patientRoutes from './patient.routes';
 import authRoutes from './auth.routes';
 import chatRoutes from './chat.routes';
 import notificationRoutes from './notification.routes';
+import profileRoutes from './profile.routes';
 import doctorRoutes from './doctor.routes';
 import adminRoutes from './admin.routes';
 import logger from '../logger';
@@ -20,6 +21,7 @@ router.use('/admin', adminRoutes);
 router.use('/', authRoutes);
 router.use('/', chatRoutes);
 router.use('/', notificationRoutes);
+router.use('/', profileRoutes);
 
 router.get('/search', authenticate, SearchController.search);
 

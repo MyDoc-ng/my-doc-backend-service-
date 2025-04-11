@@ -92,7 +92,7 @@ model User {
   facebookId        String? @unique
   isProfileComplete Boolean @default(false)
   profilePicture    String?
-  dateOfBirth       String? 
+  dateOfBirth       String?
   gender            Gender  @default(MALE)
   address           String?
   phoneNumber       String? @unique
@@ -120,18 +120,17 @@ model User {
   Notification            Notification[]
   roles                   UserRole[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  // deletedAt DateTime?
 
   @@map("users")
 }
 
 model PatientProfile {
-  id             String          @id @default(uuid())
-  userId         String          @unique
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  medicalRecords MedicalRecord[]
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -194,7 +193,7 @@ model MedicalHistory {
 model MedicalRecord {
   id                  String            @id @default(uuid())
   userId              String
-  user                User              @relation(fields: [userId], references: [id])
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   consultationSummary String?
   diagnosis           String?
   treatmentPlan       String?
@@ -203,8 +202,6 @@ model MedicalRecord {
   radiologyReports    RadiologyReport[]
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
-  PatientProfile      PatientProfile?   @relation(fields: [patientProfileId], references: [id])
-  patientProfileId    String?
 
   @@map("medical_records")
 }
@@ -253,8 +250,10 @@ model RadiologyReport {
 
 model ChatMessage {
   id          String    @id @default(uuid())
-  senderId    String
-  receiverId  String
+  senderId    String?
+  receiverId  String?
+  dSenderId   String?
+  dReceiverId String?
   content     String?
   attachments Json? // Store multiple file URLs or metadata
   voiceUrl    String?
@@ -264,16 +263,18 @@ model ChatMessage {
   deletedAt   DateTime?
 
   // Relationships
-  sender   User @relation(fields: [senderId], references: [id], name: "SenderMessages")
-  receiver User @relation(fields: [receiverId], references: [id], name: "ReceiverMessages")
+  sender   User? @relation(fields: [senderId], references: [id], name: "SenderMessages", onDelete: SetNull)
+  receiver User? @relation(fields: [receiverId], references: [id], name: "ReceiverMessages", onDelete: SetNull)
 
   @@map("chat_messages")
 }
 
 model Consultation {
   id                 String            @id @default(uuid())
-  doctorId           String
-  patientId          String
+  doctorId           String?
+  patientId          String?
+  dDoctorId           String?
+  dPatientId          String?
   status             AppointmentStatus @default(PENDING)
   consultationType   SessionType
   googleMeetLink     String?
@@ -286,9 +287,10 @@ model Consultation {
   cancelledAt DateTime? // Track cancellation time
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
-  patient User @relation(fields: [patientId], references: [id], name: "PatientConsultations")
-  doctor  User @relation(fields: [doctorId], references: [id], name: "DoctorConsultations")
+  patient User? @relation(fields: [patientId], references: [id], name: "PatientConsultations", onDelete: SetNull)
+  doctor  User? @relation(fields: [doctorId], references: [id], name: "DoctorConsultations", onDelete: SetNull)
 
   @@map("consultations")
 }
@@ -315,15 +317,18 @@ model DoctorAvailability {
 
 model Payment {
   id            String        @id @default(uuid())
-  patientId     String
+  patientId     String?
+  dDoctorId     String?
+  dPatientId    String?
   doctorId      String?
   amount        Float
   status        PaymentStatus @default(PENDING)
   transactionId String        @unique
   createdAt     DateTime      @default(now())
+  deletedAt     DateTime?
 
-  patient User  @relation(fields: [patientId], references: [id], name: "PatientPayments")
-  doctor  User? @relation(fields: [doctorId], references: [id], name: "DoctorPayments")
+  patient User? @relation(fields: [patientId], references: [id], name: "PatientPayments", onDelete: SetNull)
+  doctor  User? @relation(fields: [doctorId], references: [id], name: "DoctorPayments", onDelete: SetNull)
 
   @@map("payments")
 }
@@ -354,25 +359,28 @@ model Notification {
 }
 
 model Review {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   doctorId  String
   patientId String
   rating    Int
   comment   String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 
-  doctor  User @relation(fields: [doctorId], references: [id], name: "DoctorReviews")
-  patient User @relation(fields: [patientId], references: [id], name: "PatientReviews")
+  doctor  User @relation(fields: [doctorId], references: [id], name: "DoctorReviews", onDelete: Cascade)
+  patient User @relation(fields: [patientId], references: [id], name: "PatientReviews", onDelete: Cascade)
 }
 
 model Withdrawal {
   id        String           @id @default(uuid())
-  doctorId  String
+  doctorId  String?
+  dDoctorId String?
   amount    Float
   status    WithdrawalStatus @default(PENDING)
   createdAt DateTime         @default(now())
+  deletedAt DateTime?
 
-  doctor User @relation(fields: [doctorId], references: [id])
+  doctor User? @relation(fields: [doctorId], references: [id], onDelete: SetNull)
 }
 
 model Referral {
@@ -384,9 +392,9 @@ model Referral {
   status            ReferralStatus @default(PENDING)
   createdAt         DateTime       @default(now())
 
-  referringDoctor User @relation(fields: [referringDoctorId], references: [id], name: "referringDoctorReferral")
-  specialist      User @relation(fields: [specialistId], references: [id], name: "specialistReferral")
-  patient         User @relation(fields: [patientId], references: [id], name: "patientReferral")
+  referringDoctor User @relation(fields: [referringDoctorId], references: [id], name: "referringDoctorReferral", onDelete: Cascade)
+  specialist      User @relation(fields: [specialistId], references: [id], name: "specialistReferral", onDelete: Cascade)
+  patient         User @relation(fields: [patientId], references: [id], name: "patientReferral", onDelete: Cascade)
 }
 
 model Role {
@@ -403,4 +411,17 @@ model UserRole {
   role Role @relation(fields: [roleId], references: [id])
 
   @@id([userId, roleId])
+}
+
+model ArchivedUser {
+  id             String   @id
+  email          String
+  name           String
+  password       String
+  archivedAt     DateTime @default(now())
+  archivedReason String?
+  originalRoles  String // JSON string of role IDs
+  metadata       String? // Additional JSON metadata
+
+  @@map("archived_users")
 }

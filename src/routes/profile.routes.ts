@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { validateData } from "../middleware/validation.middleware";
-import { updateProfileSchema } from "../schema/user.schema";
+import { updatePasswordSchema, updateProfileSchema } from "../schema/user.schema";
 import { authenticate } from "../middleware/authMiddleware";
 import { UserController } from "../controller/user.controller";
 

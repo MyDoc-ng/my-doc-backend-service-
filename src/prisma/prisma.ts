@@ -1,9 +1,9 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 class PrismaSingleton {
   private static instance: PrismaClient;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): PrismaClient {
     if (!PrismaSingleton.instance) {
@@ -17,10 +17,10 @@ class PrismaSingleton {
         errorFormat: "minimal"
       });
 
-      const SOFT_DELETE_MODELS = ["User"]; // Add models manually
+      const SOFT_DELETE_MODELS = ["ChatMessage", "Consultation", "Payment"]; // Add models manually
 
-      // 🛠️ Add Middleware for Soft Delete Handling
       PrismaSingleton.instance.$use(async (params, next) => {
+      
         if (SOFT_DELETE_MODELS.includes(params.model || "")) {
           // Auto-exclude soft deleted records for `find` queries
           if (["findFirst", "findMany", "findUnique"].includes(params.action)) {

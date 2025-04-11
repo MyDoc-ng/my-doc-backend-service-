@@ -57,13 +57,13 @@ export class ConsultationService {
     });
 
     await NotificationService.createNotification(
-      appointment.patientId,
+      appointment.patientId!,
       "New Appointment",
       `Your aapointment has recorded, kindly wait for doctor's approval`,
       NotificationType.APPOINTMENT_SCHEDULED);
 
     await NotificationService.createNotification(
-      appointment.doctorId,
+      appointment.doctorId!,
       "New Appointment",
       "You have a new appointment scheduled.",
       NotificationType.APPOINTMENT_SCHEDULED
@@ -121,13 +121,13 @@ export class ConsultationService {
     });
 
     await NotificationService.createNotification(
-      appointment.patientId,
+      appointment.patientId!,
       "New Appointment",
       `Your aapointment has recorded, kindly wait for doctor's approval`,
       NotificationType.APPOINTMENT_SCHEDULED);
 
     await NotificationService.createNotification(
-      appointment.doctorId,
+      appointment.doctorId!,
       "New Appointment",
       "You have a new appointment scheduled.",
       NotificationType.APPOINTMENT_SCHEDULED
@@ -316,7 +316,7 @@ export class ConsultationService {
 
     // Create event in Google Calendar
     const event = {
-      summary: `Appointment with ${appointment.patient.name}`,
+      summary: `Appointment with ${appointment.patient?.name}`,
       description: 'Doctor Appointment',
       start: {
         dateTime: new Date(appointment.startTime).toISOString(),
@@ -326,7 +326,7 @@ export class ConsultationService {
         dateTime: new Date(appointment.endTime).toISOString(),
         timeZone: 'UTC',
       },
-      attendees: [{ email: appointment.patient.email }],
+      attendees: [{ email: appointment.patient?.email }],
       reminders: {
         useDefault: false,
         overrides: [

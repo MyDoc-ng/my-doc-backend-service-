@@ -18,7 +18,7 @@ jobs:
       - name: 🚀 Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 14
+      - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
