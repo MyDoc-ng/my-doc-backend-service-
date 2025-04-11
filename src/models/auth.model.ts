@@ -21,6 +21,13 @@ export interface IUserDocumentFiles {
   idDoc?: Express.Multer.File[];
 }
 
+export interface IComplianceData {
+  userId: string;
+  canUseVideoConsultationTools: string;
+  hasInternetEnabledDevice: string;
+  termsAccepted: boolean;
+};
+
 export interface IRole {
   // id: string;
   name: string;

@@ -159,10 +159,6 @@ export class DoctorController {
     }
   }
 
-  static async login(req: Request, res: Response) {
-    const token = await DoctorService.login(req.body);
-    res.status(200).json({ message: "Login successful", token });
-  }
 
   static async getDashboard(req: Request, res: Response, next: NextFunction) {
     try {

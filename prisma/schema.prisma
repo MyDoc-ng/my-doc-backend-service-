@@ -152,7 +152,7 @@ model DoctorProfile {
   isOnline                     Boolean              @default(false)
   lastActive                   DateTime?
   bio                          String?
-  referenceDoc                 String?              
+  referenceDoc                 String?
   cvDoc                        String?
   idDoc                        String?
   medicalLicenseDoc            String?
@@ -163,7 +163,8 @@ model DoctorProfile {
   googleRefreshToken           String?
   canUseVideoConsultationTools String?
   hasInternetEnabledDevice     String?
-  acceptedTC                   Boolean              @default(false)
+  termsAccepted                Boolean              @default(false)
+  termsAcceptedAt              DateTime?
 
   specialtyId String?
   specialty   Specialty? @relation(fields: [specialtyId], references: [id], onDelete: Cascade)

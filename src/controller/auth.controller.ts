@@ -75,6 +75,17 @@ export class AuthController {
     }
   }
 
+  static async updateDoctorCompliance(req: Request, res: Response, next: NextFunction) {
+
+    try {
+      const result = await AuthService.updateCompliance(req.body);
+
+      res.status(result.status ?? 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   static async googleAuth(req: Request, res: Response, next: NextFunction): Promise<any> {
     const { idToken } = req.body;
 

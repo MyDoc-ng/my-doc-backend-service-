@@ -255,14 +255,6 @@ export class DoctorService {
     });
   }
 
-  static async login(data: any) {
-    const doctor = await prisma.user.findUnique({ where: { email: data.email }, select: { id: true, password: true } });
-    if (!doctor || !(await bcrypt.compare(data.password, doctor.password!))) {
-      throw new Error("Invalid credentials");
-    }
-    return jwt.sign({ id: doctor.id, role: UserTypes.DOCTOR }, process.env.JWT_SECRET as string);
-  }
-
   static async getDashboard(doctorId: string) {
     return {
       appointments: await prisma.consultation.findMany({ where: { doctorId } }),

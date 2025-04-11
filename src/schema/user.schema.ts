@@ -72,3 +72,17 @@ export const updatePasswordSchema = z.object({
   message: "New password and confirm password must match",
   path: ["confirmPassword"],
 });
+
+export const doctorComplianceSchema = z.object({
+  userId: z.string().min(1, "User ID is required"),
+  termsAccepted: z.boolean().refine(val => val === true, {
+    message: "Terms must be accepted",
+  }),
+  canUseVideoConsultationTools: z.enum(["yes", "no"], {
+    required_error: "Please specify if you can use video consultation tools",
+  }),
+  hasInternetEnabledDevice: z.enum(["yes", "no"], {
+    required_error: "Please specify if you have an internet-enabled device",
+  }),
+});
+

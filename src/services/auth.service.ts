@@ -5,6 +5,7 @@ import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
 import { NotFoundException } from "../exception/not-found";
 import {
+  IComplianceData,
   IRegisterUser,
   IUserBio,
   IUserDocumentFiles,
@@ -575,6 +576,13 @@ export class AuthService {
       include: { user: true }
     });
 
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        registrationStep: RegistrationStep.PROVIDE_MEDICAL_CERTIFICATIONS,
+      }
+    })
+
     return responseService.success({
       message: "Documents uploaded successfully",
       data: {
@@ -582,7 +590,42 @@ export class AuthService {
         userId: saved.userId,
         name: saved.user.name,
         email: saved.user.email,
-        cv: saved.cvDoc
+      }
+    });
+  }
+
+  static async updateCompliance(data: IComplianceData): Promise<any> {
+    const userExists = await checkIfUserExists(data.userId);
+    
+    if (!userExists) {
+      return responseService.notFoundError({
+        message: "User not found",
+      });
+    }
+
+    await prisma.doctorProfile.update({
+      where: { userId: data.userId },
+      data: {
+        canUseVideoConsultationTools: data.canUseVideoConsultationTools,
+        hasInternetEnabledDevice: data.hasInternetEnabledDevice,
+        termsAccepted: data.termsAccepted,
+        termsAcceptedAt: new Date(),
+      },
+    });
+
+    await prisma.user.update({
+      where: { id: data.userId },
+      data: {
+        registrationStep: RegistrationStep.PROFILE_COMPLETE,
+      }
+    })
+
+    return responseService.success({
+      message: "Compliance data saved successfully",
+      data: {
+        id: userExists.id,
+        name: userExists.name,
+        email: userExists.email,
       }
     });
   }
