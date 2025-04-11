@@ -16,7 +16,7 @@
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true
     },
-    "include": ["**/*.ts"],
+    "include": ["**/*.ts", "**/*.html"],
     "exclude": ["node_modules"],
     "typeRoots": [
       "@types",
