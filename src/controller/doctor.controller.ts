@@ -8,10 +8,7 @@ import {
 } from "../utils/oauthUtils";
 import { prisma } from "../prisma/prisma";
 import logger from "../logger";
-import { AuthService } from "../services/auth.service";
-import { BadRequestException } from "../exception/bad-request";
 import { ErrorCode } from "../exception/base";
-import { UnauthorizedException } from "../exception/unauthorized";
 import { AppointmentStatus, UserTypes } from "@prisma/client";
 import { ConsultationService } from "../services/consultation.service";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
@@ -33,21 +30,16 @@ export class DoctorController {
     }
   }
 
-  static async show(req: Request, res: Response, next: NextFunction) {
+  static async profile(req: Request, res: Response, next: NextFunction) {
     try {
-      const { id } = req.params;
-      logger.info('Fetching doctor by ID', { doctorId: id });
+      const id  = req.user.id;
+      console.log(id);
 
       const doctor = await DoctorService.getDoctorById(id);
-      logger.debug('Doctor fetched successfully', { doctorId: id });
 
       res.json(doctor);
     } catch (error: any) {
-      logger.error('Error fetching doctor by ID', {
-        doctorId: req.params.id,
-        error: error.message,
-        stack: error.stack
-      });
+     
       next(error);
     }
   }
@@ -252,4 +244,12 @@ export class DoctorController {
     await DoctorService.requestWithdrawal(req.user.id, req.body.amount);
     res.status(200).json({ message: "Withdrawal request submitted" });
   }
+
+  static async getPatientsSeen(req: Request, res: Response) {
+    const doctorId = req.user.id;
+    const count = await ConsultationService.getPatientsSeen(doctorId);
+    res.json({ totalPatientsSeen: count });
+  }
+
+  
 }

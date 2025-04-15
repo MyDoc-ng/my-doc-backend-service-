@@ -351,7 +351,6 @@ export class ConsultationService {
       conferenceDataVersion: 1,
     });
 
-
     // Update appointment in database with Google Event ID and status
     return await prisma.consultation.update({
       where: { id: appointmentId, doctorId },
@@ -360,6 +359,12 @@ export class ConsultationService {
         googleEventId: calendarResponse.data.id,
         googleMeetLink: calendarResponse.data.hangoutLink,
       },
+    });
+  }
+
+  static async getPatientsSeen(doctorId: string) {
+    return await prisma.consultation.count({
+      where: { doctorId, status: AppointmentStatus.COMPLETED },
     });
   }
 }

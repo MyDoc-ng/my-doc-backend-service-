@@ -522,13 +522,8 @@ export class AuthService {
       throw new NotFoundException(`Role ${roleName} not found`, ErrorCode.NOTFOUND);
     }
 
-    const existingRole = await prisma.userRole.findUnique({
-      where: {
-        userId_roleId: {
-          userId,
-          roleId: role.name,
-        },
-      },
+    const existingRole = await prisma.userRole.findFirst({
+      where: { userId, roleId: role.id },
     });
 
     if (existingRole) {
@@ -583,6 +578,8 @@ export class AuthService {
       }
     })
 
+    await this.addRoleToUser(userId, UserTypes.DOCTOR);
+
     return responseService.success({
       message: "Documents uploaded successfully",
       data: {
@@ -596,7 +593,7 @@ export class AuthService {
 
   static async updateCompliance(data: IComplianceData): Promise<any> {
     const userExists = await checkIfUserExists(data.userId);
-    
+
     if (!userExists) {
       return responseService.notFoundError({
         message: "User not found",

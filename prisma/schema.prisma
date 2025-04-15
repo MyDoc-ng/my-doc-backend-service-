@@ -409,13 +409,13 @@ model Role {
 }
 
 model UserRole {
+  id     String @id @default(uuid())
   userId String
   roleId String
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role Role @relation(fields: [roleId], references: [id])
 
-  @@id([userId, roleId])
 }
 
 model ArchivedUser {

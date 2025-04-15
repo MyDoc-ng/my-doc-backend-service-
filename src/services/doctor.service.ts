@@ -9,6 +9,7 @@ import jwt from "jsonwebtoken";
 import { computeDoctorAvailability } from "../utils/computeDoctorAvailability";
 import { BadRequestException } from "../exception/bad-request";
 import { responseService } from "./response.service";
+import { checkIfUserExists } from "../utils/checkIfUserExists";
 
 interface FilterDoctor {
   specialization?: string;
@@ -57,6 +58,14 @@ export class DoctorService {
   }
 
   static async getDoctorById(doctorId: string) {
+    console.log(doctorId);
+    const existingUser = checkIfUserExists(doctorId);
+    if (!existingUser) {
+      return responseService.notFoundError({
+        message: "User not found",
+      });
+    }                             
+
     const doctor = await prisma.user.findUnique({
       where: { id: doctorId },
       include: {
@@ -90,7 +99,7 @@ export class DoctorService {
       data: {
         id: doctor.id,
         name: doctor.name,
-        email: doctor.email, 
+        email: doctor.email,
         gender: doctor.gender,
         phone: doctor.phoneNumber,
         profilePicture: doctor.profilePicture,
@@ -335,11 +344,9 @@ export class DoctorService {
     };
   }
 
-
   static async getPatientHistory(doctorId: string, patientId: string) {
     return prisma.consultation.findMany({
       where: { doctorId, patientId, status: AppointmentStatus.COMPLETED },
-      // include: { medicalNotes: true },
       orderBy: { startTime: "desc" },
     });
   }

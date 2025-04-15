@@ -16,7 +16,7 @@ router.get("/google/callback", DoctorController.oAuth2Callback);
 router.get("/google/:doctorId", DoctorController.googleOAuth2);
 router.get("/", authenticate, DoctorController.index);
 
-// router.get("/:id", authenticate, DoctorController.show);
+router.get("/get-profile", authenticate, authorize(['DOCTOR']), DoctorController.profile);
 
 router.get("/top", authenticate, DoctorController.topDoctors);
 router.get("/general-practitioners", authenticate, DoctorController.generalPractitioners);
@@ -29,8 +29,8 @@ router.get("/appointments/history", [authenticate, authorize(['DOCTOR'])], Docto
 router.patch("/appointments/:id/accept", [authenticate, authorize(['DOCTOR'])], DoctorController.acceptAppointment);
 router.patch("/appointments/:id/cancel", [authenticate, authorize(['DOCTOR'])], validateData(cancelSchema), DoctorController.cancelAppointment);
 router.patch("/appointments/:id/reschedule", [authenticate, authorize(['DOCTOR'])], DoctorController.rescheduleAppointment);
-// router.get("/doctor/patients-seen", authenticate, DoctorController.getPatientsSeen);
-// router.get("/doctor/earnings", authenticate, DoctorController.getEarningsBalance);
+router.get("/doctor/patients-seen", authenticate, DoctorController.getPatientsSeen);
+router.get("/doctor/earnings", authenticate, DoctorController.getEarnings);
 
 router.get("/dashboard", authenticate, DoctorController.getDashboard);
 // router.post("/appointments/accept/:id", authenticate, DoctorController.acceptAppointment);
