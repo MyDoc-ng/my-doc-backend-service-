@@ -86,13 +86,14 @@ export const responseService = {
         };
     },
 
-    unauthorizedError(message: string): ErrorResponse {
-        return {
-            success: false,
-            message,
-            error: "Unauthorized",
-            status: this.statusCodes.unauthorized,
-        };
+    unauthorizedError(message: string): ApiResponse {
+        return this.unauthorized(message);
+        // return {
+        //     success: false,
+        //     message,
+        //     error: "Unauthorized",
+        //     status: this.statusCodes.unauthorized,
+        // };
     },
 
     forbiddenError(param: ForbiddenErrorParams): ErrorResponse {
@@ -105,13 +106,14 @@ export const responseService = {
         };
     },
 
-    notFoundError(param: NotFoundErrorParams): ErrorResponse {
-        return {
-            success: false,
-            message: param.message,
-            error: "Not Found Exception",
-            status: this.statusCodes.notFound,
-        };
+    notFoundError(param: NotFoundErrorParams): ApiResponse {
+        return this.notFound(param.message, param.data);
+        // return {
+        //     success: false,
+        //     message: param.message,
+        //     error: "Not Found Exception",
+        //     status: this.statusCodes.notFound,
+        // };
     },
 
     internalServerError(message: string): ErrorResponse {

@@ -1,8 +1,9 @@
+import { responseService } from "../services/response.service";
 import { BaseHttpException, ErrorCode } from "./base";
 
 export class UnauthorizedException extends BaseHttpException {
   constructor(message: string = "Unauthorized", details?: unknown) {
-    super(message, 401, ErrorCode.UNAUTHORIZED, details);
+    super(message, responseService.statusCodes.unauthorized, ErrorCode.UNAUTHORIZED, details);
   }
 }
 
