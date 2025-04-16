@@ -27,7 +27,7 @@ const audioFileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFil
   if (allowedExtensions.test(ext)) {
     cb(null, true);
   } else {
-    cb(new BadRequestException("Only .mp3, .wav, and .ogg audio files are allowed", ErrorCode.BADREQUEST));
+    cb(new BadRequestException("Only .mp3, .wav, and .ogg audio files are allowed"));
   }
 };
 

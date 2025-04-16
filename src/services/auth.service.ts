@@ -284,7 +284,7 @@ export class AuthService {
     const payload = ticket.getPayload();
 
     if (!payload || Date.now() / 1000 > payload.exp) {
-      throw new BadRequestException("Invalid Google token", ErrorCode.BADREQUEST);
+      throw new BadRequestException("Invalid Google token");
     }
 
     const { sub: googleId, email, name, picture } = payload;
@@ -509,7 +509,7 @@ export class AuthService {
         replacements: { name, verificationLink }
       });
     } catch (error) {
-      throw new BadRequestException("Failed to send verification email", ErrorCode.BADREQUEST);
+      throw new BadRequestException("Failed to send verification email");
     }
   }
 
@@ -519,7 +519,7 @@ export class AuthService {
     });
 
     if (!role) {
-      throw new NotFoundException(`Role ${roleName} not found`, ErrorCode.NOTFOUND);
+      throw new NotFoundException(`Role ${roleName} not found`);
     }
 
     const existingRole = await prisma.userRole.findFirst({

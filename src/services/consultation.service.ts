@@ -300,15 +300,15 @@ export class ConsultationService {
     });
 
     if (!appointment) {
-      throw new NotFoundException("Appointment not found", ErrorCode.NOTFOUND);
+      throw new NotFoundException("Appointment not found");
     }
 
     if (appointment.doctorId !== doctorId) {
-      throw new BadRequestException("You are not authorized to accept this appointment", ErrorCode.BADREQUEST);
+      throw new BadRequestException("You are not authorized to accept this appointment");
     }
 
     if (appointment.status !== AppointmentStatus.PENDING) {
-      throw new BadRequestException("Appointment is not in pending status", ErrorCode.BADREQUEST);
+      throw new BadRequestException("Appointment is not in pending status");
     }
 
     // Get doctor's calendar details

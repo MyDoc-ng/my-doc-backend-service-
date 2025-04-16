@@ -1,3 +1,8 @@
+import { BaseHttpException } from "../exception/base";
+import { NotFoundException } from "../exception/not-found";
+import { UnauthorizedException } from "../exception/unauthorized";
+import { ApiResponse } from "../types/responses";
+
 interface SuccessResponse<T> {
     success: true;
     message: string;
@@ -59,6 +64,18 @@ export const responseService = {
         };
     },
 
+    fromHttpException(exception: BaseHttpException): ApiResponse {
+        return {
+            success: false,
+            message: exception.message,
+            status: exception.status,
+            error: {
+                code: exception.code,
+                details: exception.details,
+            },
+        };
+    },
+
     error(params: ErrorParams): ErrorResponse {
         return {
             success: false,
@@ -114,5 +131,13 @@ export const responseService = {
             status: this.statusCodes.serviceUnavailable,
         };
     },
+
+    notFound(message: string, details?: unknown): ApiResponse {
+        return this.fromHttpException(new NotFoundException(message, details));
+    },
+
+    unauthorized(message?: string): ApiResponse {
+        return this.fromHttpException(new UnauthorizedException(message));
+    }
 };
 

@@ -25,7 +25,7 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
   if (allowedExtensions.test(ext)) {
     cb(null, true);
   } else {
-    cb(new BadRequestException("Only .jpeg, .jpg, and .png files are allowed", ErrorCode.BADREQUEST));
+    cb(new BadRequestException("Only .jpeg, .jpg, and .png files are allowed"));
   }
 };
 

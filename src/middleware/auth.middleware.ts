@@ -82,10 +82,7 @@ export const authorize = (allowedRoles: Array<"PATIENT" | "DOCTOR" | "ADMIN">) =
       });
 
       if (!userWithRoles) {
-        throw new UnauthorizedException(
-          "User not found",
-          ErrorCode.NOTFOUND
-        );
+        throw new UnauthorizedException("User not found");
       }
 
       const roles = transformUserRoles(userWithRoles?.roles);

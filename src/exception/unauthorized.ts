@@ -1,8 +1,8 @@
-import { BaseHttpException } from "./base";
+import { BaseHttpException, ErrorCode } from "./base";
 
 export class UnauthorizedException extends BaseHttpException {
-  constructor(message: string, errorCode: number, error?: any) {
-    super(message, errorCode, 401, error);
+  constructor(message: string = "Unauthorized", details?: unknown) {
+    super(message, 401, ErrorCode.UNAUTHORIZED, details);
   }
 }
 

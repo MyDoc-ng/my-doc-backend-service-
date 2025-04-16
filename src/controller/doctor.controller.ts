@@ -80,7 +80,7 @@ export class DoctorController {
 
     const doctorExists = await checkIfUserExists(doctorId);
     if (!doctorExists) {
-      next(new NotFoundException("Doctor not found", ErrorCode.NOTFOUND));
+      next(new NotFoundException("Doctor not found"));
     }
 
     try {

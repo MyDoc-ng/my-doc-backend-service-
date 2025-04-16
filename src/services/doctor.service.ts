@@ -153,7 +153,7 @@ export class DoctorService {
     });
 
     if (!doctor) {
-      throw new NotFoundException("Doctor not found", ErrorCode.NOTFOUND);
+      throw new NotFoundException("Doctor not found");
     }
 
     try {
@@ -171,7 +171,7 @@ export class DoctorService {
     });
 
     if (!doctor || !doctor.doctorProfile!.googleRefreshToken || !doctor.doctorProfile!.googleCalendarId) {
-      throw new NotFoundException('Doctor not found or Google Calendar not connected.', ErrorCode.NOTFOUND);
+      throw new NotFoundException('Doctor not found or Google Calendar not connected.');
     }
 
     oauth2Client.setCredentials({
@@ -272,7 +272,7 @@ export class DoctorService {
     // Validate status
     const validStatuses = Object.values(AppointmentStatus);
     if (!validStatuses.includes(status.toLocaleUpperCase() as AppointmentStatus)) {
-      throw new BadRequestException(`Invalid appointment status: ${status}`, ErrorCode.BADREQUEST);
+      throw new BadRequestException(`Invalid appointment status: ${status}`);
     }
 
     // Ensure status is in uppercase

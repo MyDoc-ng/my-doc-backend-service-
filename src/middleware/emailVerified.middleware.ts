@@ -24,7 +24,7 @@ export const emailVerified = async (req: Request, res: Response, next: NextFunct
         });
 
         if (!user) {
-            throw new NotFoundException('User not found', ErrorCode.NOTFOUND);
+            throw new NotFoundException('User not found');
         }
 
         const isVerified = user.emailVerified === true;

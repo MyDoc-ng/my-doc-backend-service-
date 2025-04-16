@@ -1,7 +1,7 @@
 import { BaseHttpException, ErrorCode } from "./base";
 
 export class NotFoundException extends BaseHttpException {
-  constructor(message: string, errorCode: ErrorCode) {
-    super(message, errorCode, 404, null);
+  constructor(message: string, details?: unknown) {
+    super(message, 404, ErrorCode.NOT_FOUND, details);
   }
 }

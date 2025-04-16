@@ -41,7 +41,7 @@ export class AuthController {
   static async uploadUserPhoto(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       if (!req.file) {
-        throw new BadRequestException("No file selected", ErrorCode.BADREQUEST);
+        throw new BadRequestException("No file selected");
       }
 
       const userId = req.body.userId;

@@ -155,13 +155,13 @@ export class UserService {
 
     const senderExists = await checkIfUserExists(data.senderId);
     if (!senderExists) {
-      throw new NotFoundException("Sender not found", ErrorCode.NOTFOUND);
+      throw new NotFoundException("Sender not found");
     }
 
     // Check if receiver exists
     const receiverExists = await checkIfUserExists(data.receiverId);
     if (!receiverExists) {
-      throw new NotFoundException("Receiver not found", ErrorCode.NOTFOUND);
+      throw new NotFoundException("Receiver not found");
     }
 
     // Save message in database
@@ -175,7 +175,7 @@ export class UserService {
 
     const userExists = await checkIfUserExists(userId);
     if (!userExists) {
-      throw new NotFoundException("User not found", ErrorCode.NOTFOUND);
+      throw new NotFoundException("User not found");
     }
 
     return await prisma.chatMessage.findMany({

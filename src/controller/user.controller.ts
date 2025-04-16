@@ -140,7 +140,7 @@ export class UserController {
     try {
       if (!req.file) {
 
-        throw new BadRequestException("No voice file uploaded", ErrorCode.BADREQUEST);
+        throw new BadRequestException("No voice file uploaded");
       }
 
       const serverUrl = `${req.protocol}://${req.get("host")}`;

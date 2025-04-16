@@ -133,7 +133,7 @@ export async function saveTokensAndCalendarId(params: SaveTokenParams): Promise<
 
       if (!doctor) {
         logger.error('Doctor not found in database', { entityId });
-        throw new NotFoundException(`Doctor with ID ${entityId} not found in database`, ErrorCode.NOTFOUND);
+        throw new NotFoundException(`Doctor with ID ${entityId} not found in database`);
       }
 
       const updatedDoctor = await prisma.doctorProfile.update({
@@ -171,7 +171,7 @@ export async function saveTokensAndCalendarId(params: SaveTokenParams): Promise<
     });
 
     if (error.message.includes('Record to update not found')) {
-      throw new NotFoundException(`Doctor with ID ${entityId} not found in database`, ErrorCode.NOTFOUND);
+      throw new NotFoundException(`Doctor with ID ${entityId} not found in database`);
     }
 
     throw new Error(`Failed to save OAuth tokens for doctor ${entityId}: ${error.message}`);

@@ -36,7 +36,7 @@ app.get("/", (req: Request, res: Response) => {
 
 // Handle non-existing routes
 app.use((_req: Request, res: Response, next: NextFunction) => {
-  next(new NotFoundException(`Route ${_req.url} not found`, ErrorCode.NOTFOUND));
+  next(new NotFoundException(`Route ${_req.url} not found`));
 });
 
 app.use(errorMiddleware);
