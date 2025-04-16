@@ -250,7 +250,6 @@ export class DoctorService {
     if (!doctors.length) {
       return responseService.notFoundError({
         message: `No doctors found for ${specialtyName}`,
-        data: null,
       });
     }
 

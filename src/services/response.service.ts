@@ -24,12 +24,10 @@ interface ErrorParams {
     data?: any;
     status?: number;
 }
-interface NotFoundErrorParams {
+interface NotFoundParams {
     message: string;
-    error?: any;
-    data?: any;
-    status?: number;
-}
+    details?: unknown; 
+  }
 interface SuccessParams {
     message: string;
     data: any;
@@ -106,16 +104,6 @@ export const responseService = {
         };
     },
 
-    notFoundError(param: NotFoundErrorParams): ApiResponse {
-        return this.notFound(param.message, param.data);
-        // return {
-        //     success: false,
-        //     message: param.message,
-        //     error: "Not Found Exception",
-        //     status: this.statusCodes.notFound,
-        // };
-    },
-
     internalServerError(message: string): ErrorResponse {
         return {
             success: false,
@@ -134,8 +122,8 @@ export const responseService = {
         };
     },
 
-    notFound(message: string, details?: unknown): ApiResponse {
-        return this.fromHttpException(new NotFoundException(message, details));
+    notFoundError(param: NotFoundParams): ApiResponse {
+        return this.fromHttpException(new NotFoundException(param.message, param.details));
     },
 
     unauthorized(message?: string): ApiResponse {
