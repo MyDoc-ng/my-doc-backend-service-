@@ -37,7 +37,7 @@ export class AuthService {
       return responseService.error({
         message: "User already exists",
         status: responseService.statusCodes.conflict,
-        data: {
+        details: {
           id: userExists.id,
           name: userExists.name,
           email: userExists.email,

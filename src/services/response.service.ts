@@ -22,7 +22,7 @@ interface ErrorResponse {
 interface ErrorParams {
     message: string;
     error?: any;
-    data?: any;
+    details?: any;
     status?: number;
 }
 interface NotFoundParams {
@@ -80,7 +80,7 @@ export const responseService = {
             success: false,
             message: params.message,
             error: params.error,
-            data: params.data,
+            data: params.details,
             status: params.status || this.statusCodes.badRequest,
         };
     },
