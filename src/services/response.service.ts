@@ -1,3 +1,4 @@
+import { BadRequestException } from "../exception/bad-request";
 import { BaseHttpException } from "../exception/base";
 import { NotFoundException } from "../exception/not-found";
 import { UnauthorizedException } from "../exception/unauthorized";
@@ -26,8 +27,8 @@ interface ErrorParams {
 }
 interface NotFoundParams {
     message: string;
-    details?: unknown; 
-  }
+    details?: unknown;
+}
 interface SuccessParams {
     message: string;
     data: any;
@@ -84,16 +85,6 @@ export const responseService = {
         };
     },
 
-    unauthorizedError(message: string): ApiResponse {
-        return this.unauthorized(message);
-        // return {
-        //     success: false,
-        //     message,
-        //     error: "Unauthorized",
-        //     status: this.statusCodes.unauthorized,
-        // };
-    },
-
     forbiddenError(param: ForbiddenErrorParams): ErrorResponse {
         return {
             success: false,
@@ -126,8 +117,31 @@ export const responseService = {
         return this.fromHttpException(new NotFoundException(param.message, param.details));
     },
 
-    unauthorized(message?: string): ApiResponse {
-        return this.fromHttpException(new UnauthorizedException(message));
-    }
+    unauthorizedError(param: { message?: string }): ApiResponse {
+        return this.fromHttpException(new UnauthorizedException(param.message));
+    },
+
+    badRequest(params: { message: string; details?: unknown }): ApiResponse {
+        return this.fromHttpException(
+            new BadRequestException(params.message, params.details)
+        );
+    },
+    //  internalError(params: ErrorResponseParams): ApiResponse {
+    //     return this.fromHttpException(
+    //       new InternalServerErrorException(params.message, params.details)
+    //     );
+    //   }
+
+    //    serviceUnavailable(params: ErrorResponseParams): ApiResponse {
+    //     return this.fromHttpException(
+    //       new ServiceUnavailableException(params.message, params.details)
+    //     );
+    //   },
+    //  forbidden(params: ErrorResponseParams): ApiResponse {
+    //     return this.fromHttpException(
+    //       new ForbiddenException(params.message, params.details)
+    //     );
+    //   }
+
 };
 
