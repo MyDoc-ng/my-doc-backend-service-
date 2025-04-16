@@ -58,7 +58,6 @@ export class DoctorService {
   }
 
   static async getDoctorById(doctorId: string) {
-    console.log(doctorId);
     const existingUser = checkIfUserExists(doctorId);
     if (!existingUser) {
       return responseService.notFoundError({
@@ -262,13 +261,6 @@ export class DoctorService {
         isAvailable: computeDoctorAvailability(doctor.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
       })),
     });
-  }
-
-  static async getDashboard(doctorId: string) {
-    return {
-      appointments: await prisma.consultation.findMany({ where: { doctorId } }),
-      earnings: await prisma.payment.findMany({ where: { doctorId } }),
-    };
   }
 
   static async getAppointments(doctorId: string, status: AppointmentStatus) {

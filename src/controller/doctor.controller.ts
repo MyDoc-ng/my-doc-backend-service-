@@ -32,14 +32,12 @@ export class DoctorController {
 
   static async profile(req: Request, res: Response, next: NextFunction) {
     try {
-      const id  = req.user.id;
-      console.log(id);
+      const id = req.user.id;
 
-      const doctor = await DoctorService.getDoctorById(id);
+      const result = await DoctorService.getDoctorById(id);
 
-      res.json(doctor);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
-     
       next(error);
     }
   }
@@ -151,16 +149,6 @@ export class DoctorController {
     }
   }
 
-
-  static async getDashboard(req: Request, res: Response, next: NextFunction) {
-    try {
-      const dashboardData = await DoctorService.getDashboard(req.user.id);
-      res.status(200).json(dashboardData);
-    } catch (error) {
-      next(error);
-    }
-  }
-
   static async getAppointments(req: Request, res: Response, next: NextFunction) {
     try {
       const { status } = req.query;
@@ -198,7 +186,7 @@ export class DoctorController {
       const userId = req.user.id;
       const appointmentId = req.params.id;
       const { reason, otherReason } = req.body;
-      const result = await ConsultationService.cancelAppointment({userId, appointmentId, reason, otherReason});
+      const result = await ConsultationService.cancelAppointment({ userId, appointmentId, reason, otherReason });
       res.json(result);
     } catch (error) {
       next(error);
@@ -251,5 +239,5 @@ export class DoctorController {
     res.json({ totalPatientsSeen: count });
   }
 
-  
+
 }
