@@ -367,4 +367,26 @@ export class ConsultationService {
       where: { doctorId, status: AppointmentStatus.COMPLETED },
     });
   }
+
+  static async getAppointmentById(appointmentId: string) {
+//check if appointment exists
+    const existingaApointment = await prisma.consultation.findUnique({
+      where: { id: appointmentId },
+    });
+
+    if (!existingaApointment) {
+      return responseService.notFoundError({
+        message: "Appointment not found",
+      });
+    }
+    const appointment =  await prisma.consultation.findMany({
+      where: { id: appointmentId },
+      include: { patient: true },
+    });
+
+    return responseService.success({
+      message: "Appointment fetched successfully",
+      data: appointment,
+    })
+  }
 }

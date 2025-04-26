@@ -95,6 +95,7 @@ model User {
   dateOfBirth       String?
   gender            Gender  @default(MALE)
   address           String?
+  isOnline          Boolean @default(false)
   phoneNumber       String? @unique
 
   patientProfile   PatientProfile?
@@ -149,7 +150,6 @@ model DoctorProfile {
   homeVisitFee                 Float?
   clinicConsultationFee        Float?
   availability                 DoctorAvailability[]
-  isOnline                     Boolean              @default(false)
   lastActive                   DateTime?
   bio                          String?
   referenceDoc                 String?
@@ -415,7 +415,6 @@ model UserRole {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role Role @relation(fields: [roleId], references: [id])
-
 }
 
 model ArchivedUser {

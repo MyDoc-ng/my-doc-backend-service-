@@ -119,7 +119,7 @@ export class DoctorService {
         roles: transformUserRoles(doctor.roles),
         ratings: doctor.DoctorReviews.length ? doctor.DoctorReviews.reduce((acc, review) => acc + review.rating, 0) / doctor.DoctorReviews.length : 0,
         patientsTreated: patientsTreated.length,
-        isAvailable: computeDoctorAvailability(doctor.doctorProfile!?.isOnline, doctor.doctorProfile!?.lastActive, 7), // Uses threshold of 7 days
+        isAvailable: computeDoctorAvailability(doctor.isOnline, doctor.doctorProfile!?.lastActive, 7), // Uses threshold of 7 days
       },
     });
   }
@@ -203,7 +203,7 @@ export class DoctorService {
 
     const transformedDoctors = doctors.map((doctor) => ({
       ...doctor,
-      isAvailable: computeDoctorAvailability(doctor.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
+      isAvailable: computeDoctorAvailability(doctor.user.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
     }));
 
     return responseService.success({
@@ -264,7 +264,7 @@ export class DoctorService {
       message: "Doctors fetched successfully",
       data: doctors.map((doctor) => ({
         ...doctor,
-        isAvailable: computeDoctorAvailability(doctor.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
+        isAvailable: computeDoctorAvailability(doctor.user.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
       })),
     });
   }
@@ -354,21 +354,24 @@ export class DoctorService {
   //   return prisma.medicalNote.create({ data: { ...noteData, doctorId, appointmentId } });
   // }
 
-  static async getEarnings(doctorId: string) {
-    const totalEarnings = await prisma.payment.aggregate({
+  static async getBalance(doctorId: string) {
+    const totalBalance = await prisma.payment.aggregate({
       where: { doctorId, status: PaymentStatus.SUCCESSFUL },
       _sum: { amount: true },
     });
 
-    const availableForWithdrawal = await prisma.payment.aggregate({
-      where: { doctorId, status: PaymentStatus.SUCCESSFUL },
-      _sum: { amount: true },
-    });
+    // const availableForWithdrawal = await prisma.payment.aggregate({
+    //   where: { doctorId, status: PaymentStatus.SUCCESSFUL },
+    //   _sum: { amount: true },
+    // });
 
-    return {
-      totalEarnings: totalEarnings._sum.amount || 0,
-      availableForWithdrawal: availableForWithdrawal._sum.amount || 0,
-    };
+    return responseService.success({
+      message: "Balance fetched successfully",
+      data: {
+        totalBalance: totalBalance._sum.amount || 0,
+        // availableForWithdrawal: availableForWithdrawal._sum.amount || 0,
+      },
+    });
   }
 
   static async getPatientHistory(doctorId: string, patientId: string) {

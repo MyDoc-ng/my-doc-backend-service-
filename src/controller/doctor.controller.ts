@@ -13,19 +13,18 @@ import { AppointmentStatus, UserTypes } from "@prisma/client";
 import { ConsultationService } from "../services/consultation.service";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 import { NotFoundException } from "../exception/not-found";
-import { SearchService } from "../services/search.service";
 
 export class DoctorController {
   static async index(req: Request, res: Response, next: NextFunction) {
     try {
-      logger.info('Fetching all doctors');
+      logger.info("Fetching all doctors");
       const doctors = await DoctorService.getAllDoctors();
-      logger.debug('Doctors fetched successfully', { count: doctors.length });
+      logger.debug("Doctors fetched successfully", { count: doctors.length });
       res.status(200).json(doctors);
     } catch (error: any) {
-      logger.error('Error fetching doctors', {
+      logger.error("Error fetching doctors", {
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
       next(error);
     }
@@ -43,32 +42,42 @@ export class DoctorController {
     }
   }
 
-  static async generalPractitioners(req: Request, res: Response, next: NextFunction) {
+  static async generalPractitioners(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
-      logger.info('Fetching general practitioners');
+      logger.info("Fetching general practitioners");
       const doctors = await DoctorService.getGeneralPractitioners();
 
       res.json(doctors);
     } catch (error: any) {
-      logger.error('Error fetching general practitioners', {
+      logger.error("Error fetching general practitioners", {
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
       next(error);
     }
   }
 
-  static async topDoctors(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async topDoctors(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
-      logger.info('Fetching top doctors');
+      logger.info("Fetching top doctors");
       const doctors = await DoctorService.getTopDoctors();
-      logger.debug('Top doctors fetched successfully', { count: doctors.length });
+      logger.debug("Top doctors fetched successfully", {
+        count: doctors.length,
+      });
 
       res.json(doctors);
     } catch (error: any) {
-      logger.error('Error fetching top doctors', {
+      logger.error("Error fetching top doctors", {
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
       next(error);
     }
@@ -85,9 +94,9 @@ export class DoctorController {
     }
 
     try {
-      logger.info('Initiating Google OAuth2 flow', {
+      logger.info("Initiating Google OAuth2 flow", {
         doctorId,
-        redirectUri: doctorRedirectUri
+        redirectUri: doctorRedirectUri,
       });
 
       const authUrl = await initiateOAuth({
@@ -98,38 +107,42 @@ export class DoctorController {
         redirectUri: doctorRedirectUri,
       });
 
-      logger.debug('OAuth2 URL generated successfully', { doctorId });
+      logger.debug("OAuth2 URL generated successfully", { doctorId });
       res.status(200).json(authUrl);
     } catch (error: any) {
-      logger.error('Error initiating OAuth', {
+      logger.error("Error initiating OAuth", {
         doctorId,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
       next(error);
     }
   }
 
-  static async oAuth2Callback(req: Request, res: Response, next: NextFunction): Promise<any> {
+  static async oAuth2Callback(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
     const code = req.query.code as string;
     const state = req.query.state as string;
-    const [entityType, entityIdStr] = state.split('_');
+    const [entityType, entityIdStr] = state.split("_");
     const entityId = entityIdStr;
 
-    logger.info('OAuth2 callback received', { entityId, entityType });
+    logger.info("OAuth2 callback received", { entityId, entityType });
 
     try {
-      logger.info('Processing OAuth2 callback', { entityId });
+      logger.info("Processing OAuth2 callback", { entityId });
 
       const { tokens, calendarId } = await handleOAuthCallback(code);
 
-      logger.debug('OAuth2 tokens received', {
+      logger.debug("OAuth2 tokens received", {
         entityId,
         hasTokens: !!tokens,
-        hasCalendarId: !!calendarId
+        hasCalendarId: !!calendarId,
       });
 
-      if (entityType === 'DOCTOR') {
+      if (entityType === "DOCTOR") {
         await saveTokensAndCalendarId({
           entityType: entityType,
           entityId: entityId,
@@ -137,31 +150,59 @@ export class DoctorController {
           calendarId: calendarId,
           prisma: prisma,
         });
-        logger.info('Doctor Google Calendar connected successfully', { entityId });
-        res.json({ message: `${entityType.charAt(0).toUpperCase() + entityType.slice(1)} Google Calendar connected successfully!` });
+        logger.info("Doctor Google Calendar connected successfully", {
+          entityId,
+        });
+        res.json({
+          message: `${
+            entityType.charAt(0).toUpperCase() + entityType.slice(1)
+          } Google Calendar connected successfully!`,
+        });
       }
     } catch (error: any) {
-      logger.error('Error during OAuth2 callback', {
+      logger.error("Error during OAuth2 callback", {
         entityId,
         error: error.message,
-        stack: error.stack
+        stack: error.stack,
       });
       next(error);
     }
   }
 
-  static async getAppointments(req: Request, res: Response, next: NextFunction) {
+  static async getAppointments(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const { status } = req.query;
       const doctorId = req.user.id;
-      const appointments = await DoctorService.getAppointments(doctorId, status as AppointmentStatus);
+      const appointments = await DoctorService.getAppointments(
+        doctorId,
+        status as AppointmentStatus
+      );
       res.status(200).json(appointments);
     } catch (error) {
       next(error);
     }
   }
 
-   
+  static async getAppointmentById(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const appointmentId = req.params.appointmentId;
+      const result = await ConsultationService.getAppointmentById(
+        appointmentId
+      );
+      res.status(result.status ?? 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // static async getUpcomingConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
   //   try {
   //     const result = await DoctorService.getUpcomingConsultations(req.params.doctorId);
@@ -171,7 +212,11 @@ export class DoctorController {
   //   }
   // }
 
-  static async getAppointmentHistory(req: Request, res: Response, next: NextFunction) {
+  static async getAppointmentHistory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const doctorId = req.user.id;
       const history = await DoctorService.getAppointmentHistory(doctorId);
@@ -181,23 +226,39 @@ export class DoctorController {
     }
   }
 
-  static async acceptAppointment(req: Request, res: Response, next: NextFunction) {
+  static async acceptAppointment(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const doctorId = req.user.id;
       const appointmentId = req.params.id;
-      const result = await ConsultationService.acceptAppointment(appointmentId, doctorId);
+      const result = await ConsultationService.acceptAppointment(
+        appointmentId,
+        doctorId
+      );
       res.status(200).json(result);
     } catch (error) {
       next(error);
     }
   }
 
-  static async cancelAppointment(req: Request, res: Response, next: NextFunction) {
+  static async cancelAppointment(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
       const userId = req.user.id;
       const appointmentId = req.params.id;
       const { reason, otherReason } = req.body;
-      const result = await ConsultationService.cancelAppointment({ userId, appointmentId, reason, otherReason });
+      const result = await ConsultationService.cancelAppointment({
+        userId,
+        appointmentId,
+        reason,
+        otherReason,
+      });
       res.json(result);
     } catch (error) {
       next(error);
@@ -205,7 +266,11 @@ export class DoctorController {
   }
 
   static async rescheduleAppointment(req: Request, res: Response) {
-    await DoctorService.rescheduleAppointment(req.params.id, req.user.id, req.body.newDate);
+    await DoctorService.rescheduleAppointment(
+      req.params.id,
+      req.user.id,
+      req.body.newDate
+    );
     res.status(200).json({ message: "Appointment rescheduled" });
   }
 
@@ -215,7 +280,11 @@ export class DoctorController {
   }
 
   static async sendMessage(req: Request, res: Response) {
-    await DoctorService.sendMessage(req.user.id, req.params.patientId, req.body.message);
+    await DoctorService.sendMessage(
+      req.user.id,
+      req.params.patientId,
+      req.body.message
+    );
     res.status(201).json({ message: "Message sent" });
   }
 
@@ -225,17 +294,25 @@ export class DoctorController {
   }
 
   static async getPatientHistory(req: Request, res: Response) {
-    const history = await DoctorService.getPatientHistory(req.user.id, req.params.patientId);
+    const history = await DoctorService.getPatientHistory(
+      req.user.id,
+      req.params.patientId
+    );
     res.status(200).json(history);
   }
 
   static async referPatient(req: Request, res: Response) {
-    await DoctorService.referPatient(req.user.id, req.params.patientId, req.body.specialistId, req.body.notes);
+    await DoctorService.referPatient(
+      req.user.id,
+      req.params.patientId,
+      req.body.specialistId,
+      req.body.notes
+    );
     res.status(201).json({ message: "Patient referred" });
   }
 
-  static async getEarnings(req: Request, res: Response) {
-    const earnings = await DoctorService.getEarnings(req.user.id);
+  static async getBalance(req: Request, res: Response) {
+    const earnings = await DoctorService.getBalance(req.user.id);
     res.status(200).json(earnings);
   }
 
