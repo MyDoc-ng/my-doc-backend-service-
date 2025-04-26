@@ -31,10 +31,6 @@ export class UserService {
     });
   }
 
-  static async getUserById(id: string) {
-    return await prisma.user.findUnique({ where: { id } });
-  }
-
   static async getUpcomingConsultations(userId: string) {
     const userExists = await checkIfUserExists(userId);
     if (!userExists) {
@@ -430,16 +426,16 @@ export class UserService {
     return responseService.success({
       message: "Profile fetched successfully",
       data: {
-        id: user.id,
+        userId: user.id,
         name: user.name,
         email: user.email,
         gender: user.gender,
         dateOfBirth: user.dateOfBirth,
         phoneNumber: user.phoneNumber,
         photo: user.profilePicture,
-        createdAt: user.createdAt,
         roles: transformUserRoles(user.roles),
         registrationStep: user.registrationStep,
+        createdAt: user.createdAt,
       },
     });
   }
