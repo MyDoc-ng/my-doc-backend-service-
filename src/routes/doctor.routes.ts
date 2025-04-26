@@ -39,6 +39,7 @@ router.post("/medical-notes/:appointmentId", authenticate, DoctorController.addM
 router.get("/patient-history/:patientId", authenticate, DoctorController.getPatientHistory);
 router.post("/referrals/:patientId", authenticate, DoctorController.referPatient);
 router.get("/balance", authenticate, DoctorController.getBalance);
+router.get("/transaction-history", authenticate, DoctorController.transactionHistory);
 router.post("/withdraw", authenticate, DoctorController.requestWithdrawal);
 
 // Search Endpoint

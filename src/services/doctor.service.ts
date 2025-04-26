@@ -459,6 +459,37 @@ export class DoctorService {
   }
 
   static async requestWithdrawal(doctorId: string, amount: number) {
+    const doctorExists = await checkIfUserExists(doctorId);
+    if (!doctorExists) {
+      return responseService.notFoundError({
+        message: "Doctor not found",
+      });
+    }
+
+    if (!amount) {
+      return responseService.badRequest({
+        message: "Amount is required",
+      });
+    }
+
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    const lastDayOfMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() + 1,
+      0
+    ).getDate();
+
+    const isFirstWeek = dayOfMonth <= 7;
+    const isLastWeek = dayOfMonth > lastDayOfMonth - 7;
+
+    if (!isFirstWeek && !isLastWeek) {
+      return responseService.error({
+        message:
+          "Withdrawals are only allowed during the first or last week of the month.",
+      });
+    }
+
     const earnings = await prisma.payment.aggregate({
       where: { doctorId, status: PaymentStatus.SUCCESSFUL },
       _sum: { amount: true },
@@ -467,11 +498,41 @@ export class DoctorService {
     const totalEarnings = earnings._sum.amount ?? 0;
 
     if (totalEarnings < amount) {
-      throw new Error("Insufficient balance for withdrawal");
+      return responseService.error({
+        message: "Insufficient balance for withdrawal",
+      });
     }
 
-    return prisma.withdrawal.create({
-      data: { doctorId, amount, status: WithdrawalStatus.PENDING },
+    const withdrawal = await prisma.withdrawal.create({
+      data: {
+        doctorId,
+        amount,
+        status: WithdrawalStatus.PENDING,
+      },
+    });
+
+    return responseService.success({
+      message: "Withdrawal request submitted successfully",
+      data: withdrawal,
+    });
+  }
+
+  static async getTransactionHistory(doctorId: string) {
+    const doctorExists = await checkIfUserExists(doctorId);
+    if (!doctorExists) {
+      return responseService.notFoundError({
+        message: "Doctor not found",
+      });
+    }
+
+    const transactions = await prisma.withdrawal.findMany({
+      where: { doctorId },
+      include: { doctor: true },
+    });
+
+    return responseService.success({
+      message: "Transactions fetched successfully",
+      data: transactions,
     });
   }
 }

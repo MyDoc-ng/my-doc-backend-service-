@@ -162,8 +162,9 @@ export class DoctorController {
           entityId,
         });
         res.json({
-          message: `${entityType.charAt(0).toUpperCase() + entityType.slice(1)
-            } Google Calendar connected successfully!`,
+          message: `${
+            entityType.charAt(0).toUpperCase() + entityType.slice(1)
+          } Google Calendar connected successfully!`,
         });
       }
     } catch (error: any) {
@@ -328,14 +329,39 @@ export class DoctorController {
     res.status(200).json(earnings);
   }
 
-  static async requestWithdrawal(req: Request, res: Response) {
-    await DoctorService.requestWithdrawal(req.user.id, req.body.amount);
-    res.status(200).json({ message: "Withdrawal request submitted" });
+  static async requestWithdrawal(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const result = await DoctorService.requestWithdrawal(
+        req.user.id,
+        req.body.amount
+      );
+      res.status(result.status ?? 200).json(result);
+    } catch (error: any) {
+      next(error);
+    }
   }
 
   static async getPatientsSeen(req: Request, res: Response) {
     const doctorId = req.user.id;
     const count = await ConsultationService.getPatientsSeen(doctorId);
     res.json({ totalPatientsSeen: count });
+  }
+
+  static async transactionHistory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const doctorId = req.user.id;
+      const result = await DoctorService.getTransactionHistory(doctorId);
+      res.status(result.status).json(result);
+    } catch (error: any) {
+      next(error);
+    }
   }
 }
