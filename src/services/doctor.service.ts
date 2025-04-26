@@ -62,7 +62,7 @@ export class DoctorService {
     const existingUser = checkIfUserExists(doctorId);
     if (!existingUser) {
       return responseService.notFoundError({
-        message: "User not found",
+        message: "Doctor not found",
       });
     }                             
 
@@ -84,13 +84,7 @@ export class DoctorService {
       },
     });
 
-    if (!doctor) {
-      logger.error('Doctor not found', { doctorId });
-      return responseService.notFoundError({
-        message: "Doctor not found",
-      });
-    }
-
+  
     const patientsTreated = await prisma.consultation.groupBy({
       by: ["patientId"],
       where: {
@@ -102,24 +96,31 @@ export class DoctorService {
     return responseService.success({
       message: "Doctor fetched successfully",
       data: {
-        id: doctor.id,
-        name: doctor.name,
-        email: doctor.email,
-        gender: doctor.gender,
-        phone: doctor.phoneNumber,
-        profilePicture: doctor.profilePicture,
-        specialty: doctor.doctorProfile?.specialty,
-        experience: doctor.doctorProfile?.experience,
-        location: doctor.doctorProfile?.location,
-        consultationTypes: doctor.doctorProfile?.consultationTypes,
-        consultationFees: doctor.doctorProfile?.consultationFees,
-        homeVisitCharge: doctor.doctorProfile?.homeVisitFee,
-        clinicConsultationFee: doctor.doctorProfile?.clinicConsultationFee,
-        bio: doctor.doctorProfile?.bio,
-        roles: transformUserRoles(doctor.roles),
-        ratings: doctor.DoctorReviews.length ? doctor.DoctorReviews.reduce((acc, review) => acc + review.rating, 0) / doctor.DoctorReviews.length : 0,
-        patientsTreated: patientsTreated.length,
-        isAvailable: computeDoctorAvailability(doctor.isOnline, doctor.doctorProfile!?.lastActive, 7), // Uses threshold of 7 days
+        id: doctor?.id,
+        name: doctor?.name,
+        email: doctor?.email,
+        gender: doctor?.gender ?? null,
+        phone: doctor?.phoneNumber ?? null,
+        profilePicture: doctor?.profilePicture ?? null,
+        specialty: doctor?.doctorProfile?.specialty ?? null,
+        experience: doctor?.doctorProfile?.experience ?? null,
+        location: doctor?.doctorProfile?.location ?? null,
+        consultationTypes: doctor?.doctorProfile?.consultationTypes ?? null,
+        consultationFees: doctor?.doctorProfile?.consultationFees ?? null,
+        homeVisitCharge: doctor?.doctorProfile?.homeVisitFee ?? null,
+        clinicConsultationFee: doctor?.doctorProfile?.clinicConsultationFee ?? null,
+        bio: doctor?.doctorProfile?.bio ?? null,
+        roles: transformUserRoles(doctor?.roles),
+        ratings: doctor?.DoctorReviews?.length ? doctor.DoctorReviews.reduce((acc, review) => acc + review.rating, 0) / doctor.DoctorReviews.length : null,
+        patientsTreated: patientsTreated?.length ?? null,
+        isAvailable: doctor?.isOnline && doctor?.doctorProfile?.lastActive ? computeDoctorAvailability(doctor.isOnline, doctor.doctorProfile.lastActive, 7) : null,
+        documents: {
+           idDoc: doctor?.doctorProfile?.idDoc?? null,
+           cvDoc: doctor?.doctorProfile?.cvDoc?? null,
+           medicalLicenseDoc: doctor?.doctorProfile?.medicalLicenseDoc?? null,
+           specializationCertDoc: doctor?.doctorProfile?.specializationCertDoc?? null,
+           referenceDoc: doctor?.doctorProfile?.referenceDoc?? null,
+        }
       },
     });
   }

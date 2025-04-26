@@ -43,9 +43,8 @@ export class SearchService {
     });
   }
 
-  static async searchDoctors(doctorId: string, keyword: string) {
-    const [doctors, consultations] = await Promise.all([
-      // 1. Search doctors
+  static async searchDoctors(keyword: string) {
+    const [doctors, patients] = await Promise.all([
       prisma.user.findMany({
         where: {
           roles: {
@@ -55,15 +54,28 @@ export class SearchService {
               },
             },
           },
+          doctorConsultations: {
+            some: {
+              status: {
+                in: [
+                  AppointmentStatus.COMPLETED,
+                  AppointmentStatus.UPCOMING,
+                  AppointmentStatus.CONFIRMED,
+                ],
+              },
+            },
+          },
           OR: [
             { name: { contains: keyword, mode: "insensitive" } },
             { email: { contains: keyword, mode: "insensitive" } },
             {
               doctorProfile: {
                 OR: [
+                  { location: { contains: keyword, mode: "insensitive" } },
+                  // { consultationTypes: { equals: keyword } },
                   {
                     specialty: {
-                      name: { contains: keyword, mode: "insensitive" },
+                      name: { equals: keyword, mode: "insensitive" },
                     },
                   },
                 ],
@@ -72,6 +84,12 @@ export class SearchService {
           ],
         },
         include: {
+          doctorProfile: {
+            include: {
+              specialty: true,
+            },
+          },
+          DoctorReviews: true,
           doctorConsultations: {
             select: {
               id: true,
@@ -82,26 +100,28 @@ export class SearchService {
         },
       }),
 
-      // 2. Search patients linked to logged-in doctor
       prisma.consultation.findMany({
         where: {
-          doctorId: doctorId,
-          patient: {
-            OR: [
-              { name: { contains: keyword, mode: "insensitive" } },
-              { email: { contains: keyword, mode: "insensitive" } },
-              { phoneNumber: { contains: keyword, mode: "insensitive" } },
-            ],
-          },
+          OR: [
+            { patient: { name: { contains: keyword, mode: "insensitive" } } },
+            { patient: { email: { contains: keyword, mode: "insensitive" } } },
+            { patient: { phoneNumber: { contains: keyword, mode: "insensitive" } } },
+          ],
         },
         include: {
           patient: true,
-        },
+          doctor: {
+            include: {
+              doctorProfile: {
+                include: {
+                  specialty: true
+                }
+              }
+            }
+          }
+        }
       }),
     ]);
-
-    // Extract only unique patients
-    const patients = consultations.map((consultation) => consultation.patient);
 
     return responseService.success({
       message: "Search results fetched successfully",
