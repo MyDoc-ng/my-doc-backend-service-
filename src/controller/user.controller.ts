@@ -27,6 +27,7 @@ export class UserController {
       next(error)
     }
   }
+  
   static async getUpcomingConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       const result = await UserService.getUpcomingConsultations(req.params.userId);
@@ -35,6 +36,7 @@ export class UserController {
       next(error)
     }
   }
+
   static async getCompletedConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
     try {
       const result = await UserService.getCompletedConsultations(req.params.userId);
@@ -242,6 +244,13 @@ export class UserController {
     }
   }
 
-  
-
+  static async getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const userId = req.user.id;
+      const result = await UserService.getProfile(userId);
+      res.status(result.status ?? 200).json(result);
+    } catch (error: any) {
+      next(error);
+    }
+  }
 }

@@ -1,4 +1,4 @@
-import { AppointmentStatus, UserTypes } from "@prisma/client";
+import { AppointmentStatus, RegistrationStep, UserTypes } from "@prisma/client";
 import { ErrorCode } from "../exception/base";
 import { NotFoundException } from "../exception/not-found";
 import { prisma } from "../prisma/prisma";
@@ -7,27 +7,27 @@ import { checkIfUserExists } from "../utils/checkIfUserExists";
 import bcrypt from "bcrypt";
 import { IChangePassword, IUpdateProfile } from "../models/auth.model";
 import { responseService } from "./response.service";
+import { transformUserRoles } from "../utils/role.utils";
 
 export class UserService {
-
   static async getUsers() {
     return await prisma.user.findMany({
       where: {
         roles: {
           some: {
             role: {
-              name: UserTypes.PATIENT  // Assuming Role.name contains the role type
-            }
-          }
-        }
+              name: UserTypes.PATIENT, // Assuming Role.name contains the role type
+            },
+          },
+        },
       },
       include: {
         roles: {
           include: {
-            role: true // Include full role details if needed
-          }
-        }
-      }
+            role: true, // Include full role details if needed
+          },
+        },
+      },
     });
   }
 
@@ -36,21 +36,20 @@ export class UserService {
   }
 
   static async getUpcomingConsultations(userId: string) {
-
     const userExists = await checkIfUserExists(userId);
     if (!userExists) {
       return responseService.notFoundError({
         message: "User not found",
-      })
+      });
     }
 
     const consultation = await prisma.consultation.findMany({
       where: {
         patientId: userId,
-        status: AppointmentStatus.UPCOMING
+        status: AppointmentStatus.UPCOMING,
       },
       orderBy: {
-        startTime: 'asc'
+        startTime: "asc",
       },
       include: {
         patient: true,
@@ -60,26 +59,25 @@ export class UserService {
 
     return responseService.success({
       message: "Upcoming consultations fetched successfully",
-      data: consultation
+      data: consultation,
     });
   }
 
   static async getPendingConsultations(userId: string) {
-
     const userExists = await checkIfUserExists(userId);
     if (!userExists) {
       return responseService.notFoundError({
         message: "User not found",
-      })
+      });
     }
 
     const consultation = await prisma.consultation.findMany({
       where: {
         patientId: userId,
-        status: AppointmentStatus.PENDING
+        status: AppointmentStatus.PENDING,
       },
       orderBy: {
-        startTime: 'asc'
+        startTime: "asc",
       },
       include: {
         patient: true,
@@ -89,26 +87,25 @@ export class UserService {
 
     return responseService.success({
       message: "Pending consultations fetched successfully",
-      data: consultation
+      data: consultation,
     });
   }
 
   static async getCancelledConsultations(userId: string) {
-
     const userExists = await checkIfUserExists(userId);
     if (!userExists) {
       return responseService.notFoundError({
         message: "User not found",
-      })
+      });
     }
 
     const consultation = await prisma.consultation.findMany({
       where: {
         patientId: userId,
-        status: AppointmentStatus.CANCELLED
+        status: AppointmentStatus.CANCELLED,
       },
       orderBy: {
-        startTime: 'asc'
+        startTime: "asc",
       },
       include: {
         patient: true,
@@ -118,26 +115,25 @@ export class UserService {
 
     return responseService.success({
       message: "Cancelled consultations fetched successfully",
-      data: consultation
+      data: consultation,
     });
   }
 
   static async getCompletedConsultations(userId: string) {
-
     const userExists = await checkIfUserExists(userId);
     if (!userExists) {
       return responseService.notFoundError({
         message: "User not found",
-      })
+      });
     }
 
     const consultation = await prisma.consultation.findMany({
       where: {
         patientId: userId,
-        status: AppointmentStatus.COMPLETED
+        status: AppointmentStatus.COMPLETED,
       },
       orderBy: {
-        startTime: 'asc'
+        startTime: "asc",
       },
       include: {
         patient: true,
@@ -147,12 +143,11 @@ export class UserService {
 
     return responseService.success({
       message: "Completed consultations fetched successfully",
-      data: consultation
+      data: consultation,
     });
   }
 
   static async sendMessage(data: ChatMessageData) {
-
     const senderExists = await checkIfUserExists(data.senderId);
     if (!senderExists) {
       throw new NotFoundException("Sender not found");
@@ -168,11 +163,9 @@ export class UserService {
     return await prisma.chatMessage.create({
       data: data,
     });
-
   }
 
   static async getMessages(userId: string) {
-
     const userExists = await checkIfUserExists(userId);
     if (!userExists) {
       throw new NotFoundException("User not found");
@@ -180,18 +173,15 @@ export class UserService {
 
     return await prisma.chatMessage.findMany({
       where: {
-        OR: [
-          { senderId: userId },
-          { receiverId: userId },
-        ],
+        OR: [{ senderId: userId }, { receiverId: userId }],
       },
       orderBy: { createdAt: "asc" },
     });
-
   }
 
   static async updateProfile(profileData: IUpdateProfile): Promise<any> {
-    const { userId, dateOfBirth, gender, phoneNumber, name, email } = profileData;
+    const { userId, dateOfBirth, gender, phoneNumber, name, email } =
+      profileData;
 
     const userExists = await checkIfUserExists(userId);
 
@@ -209,9 +199,9 @@ export class UserService {
           email: email,
           dateOfBirth: dateOfBirth,
           gender: gender,
-          phoneNumber: phoneNumber
+          phoneNumber: phoneNumber,
         },
-        include: { patientProfile: true }
+        include: { patientProfile: true },
       });
 
       return { user };
@@ -228,26 +218,32 @@ export class UserService {
         phoneNumber: result.user.phoneNumber,
         photo: result.user.profilePicture,
         createdAt: result.user.createdAt,
-      }
+      },
     });
   }
 
   static async changePassword(passwordData: IChangePassword): Promise<any> {
     const { newPassword, currentPassword, userId } = passwordData;
 
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { password: true } });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
+    });
     if (!user) {
       return responseService.notFoundError({
-        message: "User not found"
-      })
+        message: "User not found",
+      });
     }
 
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password!);
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password!
+    );
 
     if (!isPasswordValid) {
       return responseService.error({
-        message: "Current password is incorrect"
-      })
+        message: "Current password is incorrect",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -263,9 +259,9 @@ export class UserService {
         id: updatedUser.id,
         name: updatedUser.name,
         email: updatedUser.email,
-        photo: updatedUser.profilePicture
-      }
-    })
+        photo: updatedUser.profilePicture,
+      },
+    });
   }
 
   // static async deleteUserById(userId: string): Promise<any> {
@@ -336,9 +332,7 @@ export class UserService {
   // }
 
   static async deleteUserAccount(userId: string, reason?: string) {
-
     try {
-    
       return await prisma.$transaction(async (tx) => {
         // Archive the user
         const user = await tx.user.findUnique({
@@ -351,15 +345,15 @@ export class UserService {
             password: true,
             registrationStep: true,
             roles: {
-              include: { role: true }
+              include: { role: true },
             },
-          }
+          },
         });
 
         if (!user) {
           return responseService.error({
             message: "User not found",
-          })
+          });
         }
 
         // Create archive record
@@ -370,32 +364,34 @@ export class UserService {
             name: user.name,
             password: user.password!, // Consider if you really need to store this
             archivedAt: new Date(),
-            archivedReason: 'User requested account deletion',
-            originalRoles: JSON.stringify(user.roles.map(r => ({
-              roleId: r.roleId,
-              roleName: r.role.name
-            }))),
+            archivedReason: "User requested account deletion",
+            originalRoles: JSON.stringify(
+              user.roles.map((r) => ({
+                roleId: r.roleId,
+                roleName: r.role.name,
+              }))
+            ),
             metadata: JSON.stringify({
               registrationStep: user.registrationStep,
               createdAt: user.createdAt,
-            })
-          }
+            }),
+          },
         });
 
         // You need to do this for each table that references users
         await tx.consultation.updateMany({
           where: { patientId: userId },
-          data: { dPatientId: userId }
+          data: { dPatientId: userId },
         });
 
         await tx.chatMessage.updateMany({
           where: { senderId: userId },
-          data: { dSenderId: userId }
+          data: { dSenderId: userId },
         });
 
         await tx.payment.updateMany({
           where: { patientId: userId },
-          data: { dPatientId: userId }
+          data: { dPatientId: userId },
         });
 
         // Delete the original user
@@ -403,11 +399,48 @@ export class UserService {
 
         return responseService.success({
           message: "Account deleted successfully.",
-          data: {}
+          data: {},
         });
       });
     } catch (error) {
       throw error;
     }
+  }
+
+  static async getProfile(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        patientProfile: true,
+        PatientReviews: true,
+        roles: {
+          include: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      return responseService.notFoundError({
+        message: "User not found",
+      });
+    }
+
+    return responseService.success({
+      message: "Profile fetched successfully",
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        gender: user.gender,
+        dateOfBirth: user.dateOfBirth,
+        phoneNumber: user.phoneNumber,
+        photo: user.profilePicture,
+        createdAt: user.createdAt,
+        roles: transformUserRoles(user.roles),
+        registrationStep: user.registrationStep,
+      },
+    });
   }
 }

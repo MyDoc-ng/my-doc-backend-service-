@@ -4,7 +4,6 @@ import { ConsultationController } from "../controller/consultation.controller";
 import { validateData } from "../middleware/validation.middleware";
 import logger from '../logger';
 import { authenticate, authorize } from "../middleware/auth.middleware";
-import { uploadFiles } from "../middleware/uploadMiddleware";
 import { cancelSchema } from "../schema/appointment.schema";
 
 const router: Router = express.Router();
@@ -24,11 +23,11 @@ router.get("/general-practitioners", authenticate, DoctorController.generalPract
 router.get("/:doctorId/availability", authenticate, ConsultationController.getDoctorAvailability);
 
 
-router.get("/appointments", [authenticate, authorize(['DOCTOR'])], DoctorController.getAppointments);
-router.get("/appointments/history", [authenticate, authorize(['DOCTOR'])], DoctorController.getAppointmentHistory);
-router.patch("/appointments/:id/accept", [authenticate, authorize(['DOCTOR'])], DoctorController.acceptAppointment);
-router.patch("/appointments/:id/cancel", [authenticate, authorize(['DOCTOR'])], validateData(cancelSchema), DoctorController.cancelAppointment);
-router.patch("/appointments/:id/reschedule", [authenticate, authorize(['DOCTOR'])], DoctorController.rescheduleAppointment);
+router.get("/appointments", authenticate, authorize(['DOCTOR']), DoctorController.getAppointments);
+router.get("/appointments/history", authenticate, authorize(['DOCTOR']), DoctorController.getAppointmentHistory);
+router.patch("/appointments/:id/accept", authenticate, authorize(['DOCTOR']), DoctorController.acceptAppointment);
+router.patch("/appointments/:id/cancel", authenticate, authorize(['DOCTOR']), validateData(cancelSchema), DoctorController.cancelAppointment);
+router.patch("/appointments/:id/reschedule", authenticate, authorize(['DOCTOR']), DoctorController.rescheduleAppointment);
 router.get("/doctor/patients-seen", authenticate, DoctorController.getPatientsSeen);
 router.get("/doctor/earnings", authenticate, DoctorController.getEarnings);
 

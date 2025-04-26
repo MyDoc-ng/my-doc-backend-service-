@@ -10,6 +10,7 @@ import { computeDoctorAvailability } from "../utils/computeDoctorAvailability";
 import { BadRequestException } from "../exception/bad-request";
 import { responseService } from "./response.service";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
+import { transformUserRoles } from "../utils/role.utils";
 
 interface FilterDoctor {
   specialization?: string;
@@ -73,6 +74,11 @@ export class DoctorService {
             specialty: true,
           },
         },
+        roles: {
+          include: {
+            role: true,
+          }
+        },
         DoctorReviews: true,
         PatientReviews: true,
       },
@@ -110,6 +116,7 @@ export class DoctorService {
         homeVisitCharge: doctor.doctorProfile?.homeVisitFee,
         clinicConsultationFee: doctor.doctorProfile?.clinicConsultationFee,
         bio: doctor.doctorProfile?.bio,
+        roles: transformUserRoles(doctor.roles),
         ratings: doctor.DoctorReviews.length ? doctor.DoctorReviews.reduce((acc, review) => acc + review.rating, 0) / doctor.DoctorReviews.length : 0,
         patientsTreated: patientsTreated.length,
         isAvailable: computeDoctorAvailability(doctor.doctorProfile!?.isOnline, doctor.doctorProfile!?.lastActive, 7), // Uses threshold of 7 days
@@ -265,7 +272,7 @@ export class DoctorService {
   static async getAppointments(doctorId: string, status: AppointmentStatus) {
 
     if (!status) {
-      status = AppointmentStatus.CONFIRMED;
+      status = AppointmentStatus.UPCOMING;
     }
 
     // Validate status
@@ -283,6 +290,35 @@ export class DoctorService {
       orderBy: { startTime: "desc" },
     });
   }
+
+  // static async getUpcomingConsultations(doctorId: string) {
+
+  //   const userExists = await checkIfUserExists(doctorId);
+  //   if (!userExists) {
+  //     return responseService.notFoundError({
+  //       message: "Doctor not found",
+  //     })
+  //   }
+
+  //   const consultation = await prisma.consultation.findMany({
+  //     where: {
+  //       doctorId: doctorId,
+  //       status: AppointmentStatus.UPCOMING
+  //     },
+  //     orderBy: {
+  //       startTime: 'asc'
+  //     },
+  //     include: {
+  //       patient: true,
+  //       doctor: true,
+  //     },
+  //   });
+
+  //   return responseService.success({
+  //     message: "Upcoming consultations fetched successfully",
+  //     data: consultation
+  //   });
+  // }
 
   static async getAppointmentHistory(doctorId: string) {
     return await prisma.consultation.findMany({

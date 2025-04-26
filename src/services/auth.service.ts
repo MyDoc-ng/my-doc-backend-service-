@@ -2,7 +2,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { prisma } from "../prisma/prisma";
 import { BadRequestException } from "../exception/bad-request";
-import { ErrorCode } from "../exception/base";
 import { NotFoundException } from "../exception/not-found";
 import {
   IComplianceData,
@@ -172,7 +171,6 @@ export class AuthService {
     });
   }
 
-
   static async loginUser(email: string, password: string): Promise<any> {
     const user = await prisma.user.findUnique({
       where: { email },
@@ -198,22 +196,6 @@ export class AuthService {
         message: "Account Not Found",
       });
     }
-
-    // Check if the user has completed their account creation
-    // if (user?.registrationStep !== RegistrationStep.PROFILE_COMPLETE) {
-    //   return responseService.forbiddenError({
-    //     message: "You have not completed your account creation, please continue",
-    //     data: {
-    //       id: user.id,
-    //       name: user.name,
-    //       email: user.email,
-    //       photo: user.profilePicture,
-    //       registrationStep: user.registrationStep,
-    //       roles: transformUserRoles(user.roles),
-    //       emailVerified: user.emailVerified,
-    //     },
-    //   });
-    // }
 
     const isPasswordValid = await bcrypt.compare(password, user.password!);
 
@@ -244,6 +226,7 @@ export class AuthService {
         photo: user.profilePicture,
         accessToken: accessToken,
         refreshToken: refreshToken,
+        registrationStep: user.registrationStep
       }
     });
   }

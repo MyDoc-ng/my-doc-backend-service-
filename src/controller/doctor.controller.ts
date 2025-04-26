@@ -160,6 +160,16 @@ export class DoctorController {
     }
   }
 
+   
+  // static async getUpcomingConsultations(req: Request, res: Response, next: NextFunction): Promise<any> {
+  //   try {
+  //     const result = await DoctorService.getUpcomingConsultations(req.params.doctorId);
+  //     res.status(result.status ?? 200).json(result);
+  //   } catch (error) {
+  //     next(error)
+  //   }
+  // }
+
   static async getAppointmentHistory(req: Request, res: Response, next: NextFunction) {
     try {
       const doctorId = req.user.id;

@@ -6,7 +6,7 @@ import { UserController } from "../controller/user.controller";
 
 const router: Router = express.Router();
 // ! Profile Endpoints
-// router.get('/profile', authenticate, UserController.getProfile);
+router.get('/profile', authenticate, UserController.getProfile);
 router.put("/profile", authenticate, validateData(updateProfileSchema), UserController.updateProfile);
 //@ts-ignore
 router.post("/change-password", authenticate, validateData(updatePasswordSchema), UserController.changePassword);
