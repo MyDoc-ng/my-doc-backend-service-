@@ -18,7 +18,8 @@ router.get("/google/callback", DoctorController.oAuth2Callback);
 router.get("/google/:doctorId", DoctorController.googleOAuth2);
 router.get("/", authenticate, DoctorController.index);
 
-router.get("/get-profile", authenticate, DoctorController.profile);
+router.get("/profile", authenticate, DoctorController.profile);
+router.get("/documents", authenticate, DoctorController.documents);
 
 router.get("/top", authenticate, DoctorController.topDoctors);
 router.get("/general-practitioners", authenticate, DoctorController.generalPractitioners);
@@ -44,7 +45,8 @@ router.post("/withdraw", authenticate, DoctorController.requestWithdrawal);
 router.get("/search", authenticate, SearchController.searchDoctors);
 
 // Payment endpoints
-router.post("/payments/add-account", authenticate, validateData(bankAccountSchema), BankController.addBankAccount);
+router.post("/payments/account", authenticate, validateData(bankAccountSchema), BankController.addBankAccount);
+router.get("/payments/account", authenticate, BankController.getBankAccount);
 // router.post("/payments/verify", authenticate, DoctorController.verifyPayment);
 export default router;
 

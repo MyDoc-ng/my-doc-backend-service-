@@ -13,19 +13,13 @@ export class BankController {
     }
   }
 
-  static async getBankAccount(req: Request, res: Response) {
+  static async getBankAccount(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user?.id;
-      const bankAccount = await BankService.getBankAccount(userId);
-      return res.status(200).json({
-        status: "success",
-        data: bankAccount,
-      });
+      const result = await BankService.getBankAccount(userId);
+      res.status(result.status ?? 200).json(result);
     } catch (error: any) {
-      return res.status(400).json({
-        status: "error",
-        message: error.message,
-      });
+      next(error);
     }
   }
 

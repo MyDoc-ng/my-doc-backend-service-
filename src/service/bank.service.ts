@@ -20,14 +20,17 @@ export class BankService {
         message: "User already has a bank account",
       });
     }
-
     // Create new bank account
-    const bankAccount =  await prisma.bankAccount.create({
-      data: {
+    const bankAccount = await prisma.bankAccount.upsert({
+      where: { userId },
+      update: {
+        ...bankData,
+      },
+      create: {
         userId,
         ...bankData,
       },
-    });
+    });    
 
     return responseService.success({
       message: "Bank account added successfully",
@@ -42,10 +45,15 @@ export class BankService {
     });
 
     if (!bankAccount) {
-      throw new Error("Bank account not found");
+      return responseService.notFoundError({
+        message: "Bank account not found",
+      });
     }
 
-    return bankAccount;
+    return responseService.success({
+      message: "Bank Account fetched Successfully",
+      data: bankAccount,
+    });
   }
 
   static async updateBankAccount(

@@ -40,6 +40,16 @@ export class DoctorController {
     }
   }
 
+  static async documents(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = req.user.id;
+      const result = await DoctorService.getDoctorDocuments(id);
+      res.status(result.status ?? 200).json(result);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
   static async generalPractitioners(
     req: Request,
     res: Response,

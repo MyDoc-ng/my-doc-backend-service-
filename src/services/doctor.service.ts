@@ -1,4 +1,12 @@
-import { SessionType, AppointmentStatus, UserTypes, User, ReferralStatus, WithdrawalStatus, PaymentStatus } from "@prisma/client";
+import {
+  SessionType,
+  AppointmentStatus,
+  UserTypes,
+  User,
+  ReferralStatus,
+  WithdrawalStatus,
+  PaymentStatus,
+} from "@prisma/client";
 import { prisma } from "../prisma/prisma";
 import { NotFoundException } from "../exception/not-found";
 import { ErrorCode } from "../exception/base";
@@ -36,25 +44,24 @@ interface DoctorProfile {
 }
 
 export class DoctorService {
-
   static async getAllDoctors() {
     return await prisma.user.findMany({
       where: {
         roles: {
           some: {
             role: {
-              name: UserTypes.DOCTOR
-            }
-          }
-        }
+              name: UserTypes.DOCTOR,
+            },
+          },
+        },
       },
       include: {
         roles: {
           include: {
-            role: true
-          }
-        }
-      }
+            role: true,
+          },
+        },
+      },
     });
   }
 
@@ -64,7 +71,7 @@ export class DoctorService {
       return responseService.notFoundError({
         message: "Doctor not found",
       });
-    }                             
+    }
 
     const doctor = await prisma.user.findUnique({
       where: { id: doctorId },
@@ -77,14 +84,13 @@ export class DoctorService {
         roles: {
           include: {
             role: true,
-          }
+          },
         },
         DoctorReviews: true,
         PatientReviews: true,
       },
     });
 
-  
     const patientsTreated = await prisma.consultation.groupBy({
       by: ["patientId"],
       where: {
@@ -96,7 +102,7 @@ export class DoctorService {
     return responseService.success({
       message: "Doctor fetched successfully",
       data: {
-        id: doctor?.id,
+        userId: doctor?.id,
         name: doctor?.name,
         email: doctor?.email,
         gender: doctor?.gender ?? null,
@@ -108,19 +114,64 @@ export class DoctorService {
         consultationTypes: doctor?.doctorProfile?.consultationTypes ?? null,
         consultationFees: doctor?.doctorProfile?.consultationFees ?? null,
         homeVisitCharge: doctor?.doctorProfile?.homeVisitFee ?? null,
-        clinicConsultationFee: doctor?.doctorProfile?.clinicConsultationFee ?? null,
+        clinicConsultationFee:
+          doctor?.doctorProfile?.clinicConsultationFee ?? null,
         bio: doctor?.doctorProfile?.bio ?? null,
         roles: transformUserRoles(doctor?.roles),
-        ratings: doctor?.DoctorReviews?.length ? doctor.DoctorReviews.reduce((acc, review) => acc + review.rating, 0) / doctor.DoctorReviews.length : null,
+        ratings: doctor?.DoctorReviews?.length
+          ? doctor.DoctorReviews.reduce(
+              (acc, review) => acc + review.rating,
+              0
+            ) / doctor.DoctorReviews.length
+          : null,
         patientsTreated: patientsTreated?.length ?? null,
-        isAvailable: doctor?.isOnline && doctor?.doctorProfile?.lastActive ? computeDoctorAvailability(doctor.isOnline, doctor.doctorProfile.lastActive, 7) : null,
+        isAvailable:
+          doctor?.isOnline && doctor?.doctorProfile?.lastActive
+            ? computeDoctorAvailability(
+                doctor.isOnline,
+                doctor.doctorProfile.lastActive,
+                7
+              )
+            : null,
         documents: {
-           idDoc: doctor?.doctorProfile?.idDoc?? null,
-           cvDoc: doctor?.doctorProfile?.cvDoc?? null,
-           medicalLicenseDoc: doctor?.doctorProfile?.medicalLicenseDoc?? null,
-           specializationCertDoc: doctor?.doctorProfile?.specializationCertDoc?? null,
-           referenceDoc: doctor?.doctorProfile?.referenceDoc?? null,
-        }
+          idDoc: doctor?.doctorProfile?.idDoc ?? null,
+          cvDoc: doctor?.doctorProfile?.cvDoc ?? null,
+          medicalLicenseDoc: doctor?.doctorProfile?.medicalLicenseDoc ?? null,
+          specializationCertDoc:
+            doctor?.doctorProfile?.specializationCertDoc ?? null,
+          referenceDoc: doctor?.doctorProfile?.referenceDoc ?? null,
+        },
+      },
+    });
+  }
+
+  static async getDoctorDocuments(doctorId: string) {
+    const existingUser = checkIfUserExists(doctorId);
+    if (!existingUser) {
+      return responseService.notFoundError({
+        message: "Doctor not found",
+      });
+    }
+
+    const doctor = await prisma.user.findUnique({
+      where: { id: doctorId },
+      include: {
+        doctorProfile: true,
+      },
+    });
+
+    return responseService.success({
+      message: "Documents fetched successfully",
+      data: {
+        userId: doctor?.id,
+        documents: {
+          idDoc: doctor?.doctorProfile?.idDoc ?? null,
+          cvDoc: doctor?.doctorProfile?.cvDoc ?? null,
+          medicalLicenseDoc: doctor?.doctorProfile?.medicalLicenseDoc ?? null,
+          specializationCertDoc:
+            doctor?.doctorProfile?.specializationCertDoc ?? null,
+          referenceDoc: doctor?.doctorProfile?.referenceDoc ?? null,
+        },
       },
     });
   }
@@ -133,7 +184,7 @@ export class DoctorService {
       take: 5,
     });
 
-    const doctorIds = ratings.map(r => r.doctorId);
+    const doctorIds = ratings.map((r) => r.doctorId);
 
     const doctors = await prisma.doctorProfile.findMany({
       where: { id: { in: doctorIds } },
@@ -144,9 +195,9 @@ export class DoctorService {
     });
 
     const doctorMap = Object.fromEntries(
-      ratings.map(r => [r.doctorId, r._avg.rating])
+      ratings.map((r) => [r.doctorId, r._avg.rating])
     );
-    const topDoctors = doctors.map(doctor => ({
+    const topDoctors = doctors.map((doctor) => ({
       ...doctor,
       avgRating: doctorMap[doctor.id] || 0,
     }));
@@ -157,7 +208,7 @@ export class DoctorService {
   static async getDoctorAvailability(doctorId: string): Promise<any> {
     const doctor = await prisma.doctorProfile.findUnique({
       where: { userId: doctorId },
-      select: { availability: true }
+      select: { availability: true },
     });
 
     if (!doctor) {
@@ -175,11 +226,17 @@ export class DoctorService {
   static async getDoctorCalendarDetails(doctorId: string) {
     const doctor = await prisma.user.findUnique({
       where: { id: doctorId },
-      include: { doctorProfile: true }
+      include: { doctorProfile: true },
     });
 
-    if (!doctor || !doctor.doctorProfile!.googleRefreshToken || !doctor.doctorProfile!.googleCalendarId) {
-      throw new NotFoundException('Doctor not found or Google Calendar not connected.');
+    if (
+      !doctor ||
+      !doctor.doctorProfile!.googleRefreshToken ||
+      !doctor.doctorProfile!.googleCalendarId
+    ) {
+      throw new NotFoundException(
+        "Doctor not found or Google Calendar not connected."
+      );
     }
 
     oauth2Client.setCredentials({
@@ -204,14 +261,17 @@ export class DoctorService {
 
     const transformedDoctors = doctors.map((doctor) => ({
       ...doctor,
-      isAvailable: computeDoctorAvailability(doctor.user.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
+      isAvailable: computeDoctorAvailability(
+        doctor.user.isOnline,
+        doctor.lastActive,
+        7
+      ), // Uses threshold of 7 days
     }));
 
     return responseService.success({
       message: "General practitioners fetched successfully",
       data: transformedDoctors,
     });
-
   }
 
   static async getSpecializations() {
@@ -233,7 +293,6 @@ export class DoctorService {
   }
 
   static async getDoctorsBySpecialty(specialtyName: string) {
-
     if (!specialtyName) {
       return responseService.error({
         message: "Specialty name or ID is required",
@@ -243,10 +302,7 @@ export class DoctorService {
     const doctors = await prisma.doctorProfile.findMany({
       where: {
         specialty: {
-          OR: [
-            { name: specialtyName },
-            { id: specialtyName }
-          ],
+          OR: [{ name: specialtyName }, { id: specialtyName }],
         },
       },
       include: {
@@ -265,27 +321,32 @@ export class DoctorService {
       message: "Doctors fetched successfully",
       data: doctors.map((doctor) => ({
         ...doctor,
-        isAvailable: computeDoctorAvailability(doctor.user.isOnline, doctor.lastActive, 7), // Uses threshold of 7 days
+        isAvailable: computeDoctorAvailability(
+          doctor.user.isOnline,
+          doctor.lastActive,
+          7
+        ), // Uses threshold of 7 days
       })),
     });
   }
 
   static async getAppointments(doctorId: string, status: AppointmentStatus) {
-
     if (!status) {
       status = AppointmentStatus.UPCOMING;
     }
 
     // Validate status
     const validStatuses = Object.values(AppointmentStatus);
-    if (!validStatuses.includes(status.toLocaleUpperCase() as AppointmentStatus)) {
+    if (
+      !validStatuses.includes(status.toLocaleUpperCase() as AppointmentStatus)
+    ) {
       throw new BadRequestException(`Invalid appointment status: ${status}`);
     }
 
     // Ensure status is in uppercase
     status = status.toUpperCase() as AppointmentStatus;
 
-    logger.info('Fetching appointments', { doctorId, status });
+    logger.info("Fetching appointments", { doctorId, status });
     return await prisma.consultation.findMany({
       where: { doctorId, status },
       orderBy: { startTime: "desc" },
@@ -333,14 +394,20 @@ export class DoctorService {
       where: {
         OR: [
           { senderId: doctorId, receiverId: patientId },
-          { senderId: patientId, receiverId: doctorId }
-        ]
+          { senderId: patientId, receiverId: doctorId },
+        ],
       },
     });
   }
 
-  static async sendMessage(doctorId: string, patientId: string, content: string) {
-    return prisma.chatMessage.create({ data: { senderId: doctorId, receiverId: patientId, content } });
+  static async sendMessage(
+    doctorId: string,
+    patientId: string,
+    content: string
+  ) {
+    return prisma.chatMessage.create({
+      data: { senderId: doctorId, receiverId: patientId, content },
+    });
   }
 
   // static async addMedicalNote(doctorId: string, appointmentId: string, noteData: any) {
@@ -374,7 +441,12 @@ export class DoctorService {
     });
   }
 
-  static async referPatient(doctorId: string, patientId: string, specialistId: string, notes: string) {
+  static async referPatient(
+    doctorId: string,
+    patientId: string,
+    specialistId: string,
+    notes: string
+  ) {
     return prisma.referral.create({
       data: {
         referringDoctorId: doctorId,
@@ -402,5 +474,4 @@ export class DoctorService {
       data: { doctorId, amount, status: WithdrawalStatus.PENDING },
     });
   }
-
 }
