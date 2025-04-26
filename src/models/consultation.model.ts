@@ -10,3 +10,9 @@ export type BookingData = {
   date: Date;
   time: string;
 };
+
+export type UpdateBookingData = {
+  appointmentId: string;
+  date: Date;
+  time: string;
+};

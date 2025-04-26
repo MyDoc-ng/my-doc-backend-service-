@@ -1,7 +1,15 @@
 import { prisma } from "../prisma/prisma";
 import { ErrorCode } from "../exception/base";
-import { BookingData, GOPDBookingData } from "../models/consultation.model";
-import { AppointmentStatus, NotificationType, SessionType } from "@prisma/client";
+import {
+  BookingData,
+  GOPDBookingData,
+  UpdateBookingData,
+} from "../models/consultation.model";
+import {
+  AppointmentStatus,
+  NotificationType,
+  SessionType,
+} from "@prisma/client";
 import { NotificationService } from "./notification.service";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 import { NotFoundException } from "../exception/not-found";
@@ -17,12 +25,10 @@ interface ICancelAppointment {
   otherReason?: string;
 }
 export class ConsultationService {
-
   static async getAllAppointments() {
     const appointments = await prisma.consultation.findMany();
     return appointments;
   }
-
 
   static async bookGOPDConsultation(data: GOPDBookingData) {
     const { doctorId, patientId } = data;
@@ -52,7 +58,7 @@ export class ConsultationService {
         doctorId: doctorId,
         startTime: startTime,
         endTime: endTime,
-        consultationType: SessionType.VIDEO
+        consultationType: SessionType.VIDEO,
       },
     });
 
@@ -60,7 +66,8 @@ export class ConsultationService {
       appointment.patientId!,
       "New Appointment",
       `Your aapointment has recorded, kindly wait for doctor's approval`,
-      NotificationType.APPOINTMENT_SCHEDULED);
+      NotificationType.APPOINTMENT_SCHEDULED
+    );
 
     await NotificationService.createNotification(
       appointment.doctorId!,
@@ -80,7 +87,7 @@ export class ConsultationService {
         status: appointment.status,
         consultationType: appointment.consultationType,
         createdAt: appointment.createdAt,
-      }
+      },
     });
   }
 
@@ -116,7 +123,7 @@ export class ConsultationService {
         startTime: startTime,
         endTime: endTime,
         status: AppointmentStatus.PENDING,
-        consultationType: SessionType.VIDEO
+        consultationType: SessionType.VIDEO,
       },
     });
 
@@ -124,7 +131,8 @@ export class ConsultationService {
       appointment.patientId!,
       "New Appointment",
       `Your aapointment has recorded, kindly wait for doctor's approval`,
-      NotificationType.APPOINTMENT_SCHEDULED);
+      NotificationType.APPOINTMENT_SCHEDULED
+    );
 
     await NotificationService.createNotification(
       appointment.doctorId!,
@@ -144,7 +152,7 @@ export class ConsultationService {
         status: appointment.status,
         consultationType: appointment.consultationType,
         createdAt: appointment.createdAt,
-      }
+      },
     });
   }
 
@@ -163,8 +171,12 @@ export class ConsultationService {
     });
   }
 
-  static async reviewDoctor(doctorId: string, patientId: string, rating: number, comment: string) {
-
+  static async reviewDoctor(
+    doctorId: string,
+    patientId: string,
+    rating: number,
+    comment: string
+  ) {
     // Check if doctor exists
     const doctorExists = await checkIfUserExists(doctorId);
     if (!doctorExists) {
@@ -181,7 +193,7 @@ export class ConsultationService {
       });
     }
 
-    const review =  await prisma.review.create({
+    const review = await prisma.review.create({
       data: { doctorId, patientId, rating, comment },
     });
 
@@ -207,7 +219,7 @@ export class ConsultationService {
       });
     }
 
-    const review =  await prisma.review.aggregate({
+    const review = await prisma.review.aggregate({
       where: { doctorId },
       _avg: { rating: true },
     });
@@ -226,10 +238,7 @@ export class ConsultationService {
       where: {
         doctorId: userId,
       },
-      orderBy: [
-        { startTime: "asc" },
-        { endTime: "asc" },
-      ],
+      orderBy: [{ startTime: "asc" }, { endTime: "asc" }],
       include: {
         doctor: true,
       },
@@ -245,10 +254,7 @@ export class ConsultationService {
     const appointment = await prisma.consultation.findUnique({
       where: {
         id: appointmentId,
-        OR: [
-          { doctorId: userId },
-          { patientId: userId },
-        ],
+        OR: [{ doctorId: userId }, { patientId: userId }],
       },
     });
 
@@ -263,7 +269,6 @@ export class ConsultationService {
         message: "Appointment already cancelled",
       });
     }
-
 
     // Update appointment status to 'cancelled'
     const cancelledApointment = await prisma.consultation.update({
@@ -293,6 +298,59 @@ export class ConsultationService {
     });
   }
 
+  static async rescheduleAppointment(data: UpdateBookingData) {
+    const { appointmentId, date, time } = data;
+
+    const appointment = await prisma.consultation.findUnique({
+      where: {
+        id: appointmentId
+      },
+    });
+
+    if (!appointment) {
+      return responseService.notFoundError({
+        message: "Appointment not found or unauthorized",
+      });
+    }
+
+    const timeIn24Hr = new Date(`${date} ${time}`).toISOString();
+
+    const startTime = new Date(timeIn24Hr);
+    const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
+
+    const consultation =  await prisma.consultation.update({
+      where: { id: appointmentId },
+      data: { 
+        startTime: startTime, 
+        endTime: endTime,
+        status: AppointmentStatus.CONFIRMED 
+      },
+      include: {
+        doctor: true,
+        patient: true,
+      }
+    });
+
+    await NotificationService.createNotification(
+      appointment.patientId!,
+      "Appointment Rescheduled",
+      `Your appointment with ${consultation.doctor!.name}, has been rescheduled`,
+      NotificationType.APPOINTMENT_RESCHEDULED
+    );
+
+    await NotificationService.createNotification(
+      appointment.doctorId!,
+      "Appointment Rescheduled",
+      `You rescheduled your appointment with ${consultation.patient!.name}`,
+      NotificationType.APPOINTMENT_RESCHEDULED
+    );
+
+    return responseService.success({
+      message: "Appointment rescheduled successfully",
+      data: consultation,
+    }); 
+  }
+
   static async acceptAppointment(appointmentId: string, doctorId: string) {
     const appointment = await prisma.consultation.findUnique({
       where: { id: appointmentId },
@@ -304,7 +362,9 @@ export class ConsultationService {
     }
 
     if (appointment.doctorId !== doctorId) {
-      throw new BadRequestException("You are not authorized to accept this appointment");
+      throw new BadRequestException(
+        "You are not authorized to accept this appointment"
+      );
     }
 
     if (appointment.status !== AppointmentStatus.PENDING) {
@@ -312,32 +372,33 @@ export class ConsultationService {
     }
 
     // Get doctor's calendar details
-    const { calendarId, oauth2Client } = await DoctorService.getDoctorCalendarDetails(appointment.doctorId);
+    const { calendarId, oauth2Client } =
+      await DoctorService.getDoctorCalendarDetails(appointment.doctorId);
 
     // Create event in Google Calendar
     const event = {
       summary: `Appointment with ${appointment.patient?.name}`,
-      description: 'Doctor Appointment',
+      description: "Doctor Appointment",
       start: {
         dateTime: new Date(appointment.startTime).toISOString(),
-        timeZone: 'UTC',
+        timeZone: "UTC",
       },
       end: {
         dateTime: new Date(appointment.endTime).toISOString(),
-        timeZone: 'UTC',
+        timeZone: "UTC",
       },
       attendees: [{ email: appointment.patient?.email }],
       reminders: {
         useDefault: false,
         overrides: [
-          { method: 'email', minutes: 24 * 60 },
-          { method: 'popup', minutes: 10 },
+          { method: "email", minutes: 24 * 60 },
+          { method: "popup", minutes: 10 },
         ],
       },
       conferenceData: {
         createRequest: {
           requestId: appointment.id,
-          conferenceSolutionKey: { type: 'hangoutsMeet' },
+          conferenceSolutionKey: { type: "hangoutsMeet" },
         },
       },
     };
@@ -346,7 +407,7 @@ export class ConsultationService {
       calendarId: calendarId,
       auth: oauth2Client,
       sendNotifications: true,
-      sendUpdates: 'all',
+      sendUpdates: "all",
       requestBody: event,
       conferenceDataVersion: 1,
     });
@@ -369,7 +430,7 @@ export class ConsultationService {
   }
 
   static async getAppointmentById(appointmentId: string) {
-//check if appointment exists
+    //check if appointment exists
     const existingaApointment = await prisma.consultation.findUnique({
       where: { id: appointmentId },
     });
@@ -379,7 +440,7 @@ export class ConsultationService {
         message: "Appointment not found",
       });
     }
-    const appointment =  await prisma.consultation.findMany({
+    const appointment = await prisma.consultation.findMany({
       where: { id: appointmentId },
       include: { patient: true },
     });
@@ -387,6 +448,6 @@ export class ConsultationService {
     return responseService.success({
       message: "Appointment fetched successfully",
       data: appointment,
-    })
+    });
   }
 }

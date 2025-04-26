@@ -154,9 +154,8 @@ export class DoctorController {
           entityId,
         });
         res.json({
-          message: `${
-            entityType.charAt(0).toUpperCase() + entityType.slice(1)
-          } Google Calendar connected successfully!`,
+          message: `${entityType.charAt(0).toUpperCase() + entityType.slice(1)
+            } Google Calendar connected successfully!`,
         });
       }
     } catch (error: any) {
@@ -259,19 +258,24 @@ export class DoctorController {
         reason,
         otherReason,
       });
-      res.json(result);
+      res.status(result.status ?? 200).json(result);
     } catch (error) {
       next(error);
     }
   }
 
-  static async rescheduleAppointment(req: Request, res: Response) {
-    await DoctorService.rescheduleAppointment(
-      req.params.id,
-      req.user.id,
-      req.body.newDate
-    );
-    res.status(200).json({ message: "Appointment rescheduled" });
+  static async rescheduleAppointment(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const result = await ConsultationService.rescheduleAppointment(req.body);
+
+      res.status(result.status ?? 200).json(result);
+    } catch (error) {
+      next(error);
+    }
   }
 
   static async getChat(req: Request, res: Response) {

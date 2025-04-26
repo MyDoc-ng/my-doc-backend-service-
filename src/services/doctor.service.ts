@@ -327,14 +327,6 @@ export class DoctorService {
     });
   }
 
-
-  static async rescheduleAppointment(appointmentId: string, doctorId: string, newDate: string) {
-    return prisma.consultation.update({
-      where: { id: appointmentId, doctorId },
-      data: { startTime: newDate, status: AppointmentStatus.CONFIRMED },
-    });
-  }
-
   static async getChat(doctorId: string, patientId: string) {
     return prisma.chatMessage.findMany({
       where: {

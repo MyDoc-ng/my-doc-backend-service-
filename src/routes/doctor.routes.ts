@@ -4,7 +4,7 @@ import { ConsultationController } from "../controller/consultation.controller";
 import { validateData } from "../middleware/validation.middleware";
 import logger from '../logger';
 import { authenticate, authorize } from "../middleware/auth.middleware";
-import { cancelSchema } from "../schema/appointment.schema";
+import { appointmentSchema, cancelSchema, rescheduleAppointmentSchema } from "../schema/appointment.schema";
 import { SearchController } from "../controller/search.controller";
 
 const router: Router = express.Router();
@@ -28,11 +28,9 @@ router.get("/appointments/view/:appointmentId", authenticate, authorize(['DOCTOR
 router.get("/appointments/history", authenticate, authorize(['DOCTOR']), DoctorController.getAppointmentHistory);
 router.patch("/appointments/:id/accept", authenticate, authorize(['DOCTOR']), DoctorController.acceptAppointment);
 router.patch("/appointments/:id/cancel", authenticate, authorize(['DOCTOR']), validateData(cancelSchema), DoctorController.cancelAppointment);
-router.patch("/appointments/:id/reschedule", authenticate, authorize(['DOCTOR']), DoctorController.rescheduleAppointment);
+router.patch("/appointments/:id/reschedule", authenticate, authorize(['DOCTOR']),  validateData(rescheduleAppointmentSchema), DoctorController.rescheduleAppointment);
 router.get("/doctor/patients-seen", authenticate, DoctorController.getPatientsSeen);
 
-// router.post("/appointments/accept/:id", authenticate, DoctorController.acceptAppointment);
-router.post("/appointments/cancel/:id", authenticate, DoctorController.cancelAppointment);
 router.post("/appointments/reschedule/:id", authenticate, DoctorController.rescheduleAppointment);
 router.get("/chat/:patientId", authenticate, DoctorController.getChat);
 router.post("/chat/:patientId", authenticate, DoctorController.sendMessage);
