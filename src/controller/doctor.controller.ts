@@ -33,9 +33,7 @@ export class DoctorController {
   static async profile(req: Request, res: Response, next: NextFunction) {
     try {
       const id = req.user.id;
-
       const result = await DoctorService.getDoctorById(id);
-
       res.status(result.status ?? 200).json(result);
     } catch (error: any) {
       next(error);

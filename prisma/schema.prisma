@@ -101,6 +101,7 @@ model User {
   patientProfile   PatientProfile?
   doctorProfile    DoctorProfile?
   adminProfile     AdminProfile?
+  BankAccount BankAccount?
   registrationStep RegistrationStep @default(CREATE_ACCOUNT)
 
   PatientReviews          Review[]         @relation(name: "PatientReviews")
@@ -121,8 +122,8 @@ model User {
   Notification            Notification[]
   roles                   UserRole[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
   // deletedAt DateTime?
 
   @@map("users")
@@ -428,4 +429,15 @@ model ArchivedUser {
   metadata       String? // Additional JSON metadata
 
   @@map("archived_users")
+}
+
+model BankAccount {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountName String
+  accountNo   String
+  bankName    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

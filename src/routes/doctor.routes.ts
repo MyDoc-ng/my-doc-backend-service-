@@ -6,6 +6,8 @@ import logger from '../logger';
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { appointmentSchema, cancelSchema, rescheduleAppointmentSchema } from "../schema/appointment.schema";
 import { SearchController } from "../controller/search.controller";
+import { BankController } from "../controller/bank.controller";
+import { bankAccountSchema } from "../schema/bank.schema";
 
 const router: Router = express.Router();
 
@@ -20,7 +22,6 @@ router.get("/get-profile", authenticate, DoctorController.profile);
 
 router.get("/top", authenticate, DoctorController.topDoctors);
 router.get("/general-practitioners", authenticate, DoctorController.generalPractitioners);
-
 router.get("/:doctorId/availability", authenticate, ConsultationController.getDoctorAvailability);
 
 router.get("/appointments", authenticate, authorize(['DOCTOR']), DoctorController.getAppointments);
@@ -31,7 +32,6 @@ router.patch("/appointments/:id/cancel", authenticate, authorize(['DOCTOR']), va
 router.patch("/appointments/:id/reschedule", authenticate, authorize(['DOCTOR']),  validateData(rescheduleAppointmentSchema), DoctorController.rescheduleAppointment);
 router.get("/doctor/patients-seen", authenticate, DoctorController.getPatientsSeen);
 
-router.post("/appointments/reschedule/:id", authenticate, DoctorController.rescheduleAppointment);
 router.get("/chat/:patientId", authenticate, DoctorController.getChat);
 router.post("/chat/:patientId", authenticate, DoctorController.sendMessage);
 router.post("/medical-notes/:appointmentId", authenticate, DoctorController.addMedicalNote);
@@ -43,5 +43,8 @@ router.post("/withdraw", authenticate, DoctorController.requestWithdrawal);
 // Search Endpoint
 router.get("/search", authenticate, SearchController.searchDoctors);
 
+// Payment endpoints
+router.post("/payments/add-account", authenticate, validateData(bankAccountSchema), BankController.addBankAccount);
+// router.post("/payments/verify", authenticate, DoctorController.verifyPayment);
 export default router;
 
