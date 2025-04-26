@@ -13,6 +13,7 @@ import { AppointmentStatus, UserTypes } from "@prisma/client";
 import { ConsultationService } from "../services/consultation.service";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 import { NotFoundException } from "../exception/not-found";
+import { SearchService } from "../services/search.service";
 
 export class DoctorController {
   static async index(req: Request, res: Response, next: NextFunction) {
@@ -248,6 +249,4 @@ export class DoctorController {
     const count = await ConsultationService.getPatientsSeen(doctorId);
     res.json({ totalPatientsSeen: count });
   }
-
-
 }

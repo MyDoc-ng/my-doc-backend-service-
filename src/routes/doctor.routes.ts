@@ -5,6 +5,7 @@ import { validateData } from "../middleware/validation.middleware";
 import logger from '../logger';
 import { authenticate, authorize } from "../middleware/auth.middleware";
 import { cancelSchema } from "../schema/appointment.schema";
+import { SearchController } from "../controller/search.controller";
 
 const router: Router = express.Router();
 
@@ -41,6 +42,9 @@ router.get("/patient-history/:patientId", authenticate, DoctorController.getPati
 router.post("/referrals/:patientId", authenticate, DoctorController.referPatient);
 router.get("/earnings", authenticate, DoctorController.getEarnings);
 router.post("/withdraw", authenticate, DoctorController.requestWithdrawal);
+
+// Search Endpoint
+router.get("/search", authenticate, SearchController.searchDoctors);
 
 export default router;
 
