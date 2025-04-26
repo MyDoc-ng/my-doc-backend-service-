@@ -323,7 +323,7 @@ export class ConsultationService {
       data: { 
         startTime: startTime, 
         endTime: endTime,
-        status: AppointmentStatus.CONFIRMED 
+        status: AppointmentStatus.CANCELLED 
       },
       include: {
         doctor: true,
