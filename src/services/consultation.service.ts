@@ -17,6 +17,8 @@ import { BadRequestException } from "../exception/bad-request";
 import { DoctorService } from "./doctor.service";
 import { calendar } from "../utils/oauthUtils";
 import { responseService } from "./response.service";
+import { EmailService } from "./email.service";
+import { EmailTemplates } from "../emails/emailTemplates";
 
 interface ICancelAppointment {
   appointmentId: string;
@@ -344,6 +346,14 @@ export class ConsultationService {
       `You rescheduled your appointment with ${consultation.patient!.name}`,
       NotificationType.APPOINTMENT_RESCHEDULED
     );
+
+    // Send email here
+    // await EmailService.sendEmail({
+    //   to: consultation.patient?.email as string,
+    //   subject: "Appointment Rescheduled",
+    //   templateName: EmailTemplates.VERIFICATION,
+    //   replacements: { consultation.doctor!.name },
+    // });
 
     return responseService.success({
       message: "Appointment rescheduled successfully",
