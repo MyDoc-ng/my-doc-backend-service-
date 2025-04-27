@@ -126,12 +126,8 @@ export class DoctorService {
           : null,
         patientsTreated: patientsTreated?.length ?? null,
         isAvailable:
-          doctor?.isOnline && doctor?.doctorProfile?.lastActive
-            ? computeDoctorAvailability(
-                doctor.isOnline,
-                doctor.doctorProfile.lastActive,
-                7
-              )
+          doctor?.isOnline && doctor.lastActive
+            ? computeDoctorAvailability(doctor.isOnline, doctor.lastActive, 7)
             : null,
         documents: {
           idDoc: doctor?.doctorProfile?.idDoc ?? null,
@@ -263,7 +259,7 @@ export class DoctorService {
       ...doctor,
       isAvailable: computeDoctorAvailability(
         doctor.user.isOnline,
-        doctor.lastActive,
+        doctor.user.lastActive,
         7
       ), // Uses threshold of 7 days
     }));
@@ -323,7 +319,7 @@ export class DoctorService {
         ...doctor,
         isAvailable: computeDoctorAvailability(
           doctor.user.isOnline,
-          doctor.lastActive,
+          doctor.user.lastActive,
           7
         ), // Uses threshold of 7 days
       })),

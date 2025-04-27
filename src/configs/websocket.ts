@@ -37,8 +37,8 @@ export const setupWebSocket = (server: Server) => {
 
             // If the user is a doctor, mark them as online
             if (userRole === UserTypes.DOCTOR) {
-                await prisma.doctorProfile.update({
-                    where: { userId },
+                await prisma.user.update({
+                    where: { id: userId },
                     data: { isOnline: true },
                 });
             }
@@ -96,8 +96,8 @@ export const setupWebSocket = (server: Server) => {
 
                 // If the user is a doctor, update last active timestamp and mark offline
                 if (userRole === UserTypes.DOCTOR) {
-                    await prisma.doctorProfile.update({
-                        where: { userId },
+                    await prisma.user.update({
+                        where: { id:userId },
                         data: { isOnline: false, lastActive: new Date() },
                     });
                 }

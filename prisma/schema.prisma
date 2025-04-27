@@ -99,6 +99,7 @@ model User {
   address              String?
   isOnline             Boolean   @default(false)
   phoneNumber          String?   @unique
+  lastActive                   DateTime?
 
   patientProfile   PatientProfile?
   doctorProfile    DoctorProfile?
@@ -153,7 +154,6 @@ model DoctorProfile {
   homeVisitFee                 Float?
   clinicConsultationFee        Float?
   availability                 DoctorAvailability[]
-  lastActive                   DateTime?
   bio                          String?
   referenceDoc                 String?
   cvDoc                        String?

@@ -43,7 +43,7 @@ export class SearchService {
     });
   }
 
-  static async searchDoctors(keyword: string) {
+  static async searchDoctors(doctorId: string, keyword: string) {
     const [doctors, patients] = await Promise.all([
       prisma.user.findMany({
         where: {
@@ -102,11 +102,14 @@ export class SearchService {
 
       prisma.consultation.findMany({
         where: {
-          OR: [
-            { patient: { name: { contains: keyword, mode: "insensitive" } } },
-            { patient: { email: { contains: keyword, mode: "insensitive" } } },
-            { patient: { phoneNumber: { contains: keyword, mode: "insensitive" } } },
-          ],
+          doctorId,
+          patient: {
+            OR: [
+              { name: { contains: keyword, mode: "insensitive" } },
+              { email: { contains: keyword, mode: "insensitive" } },
+              { phoneNumber: { contains: keyword, mode: "insensitive" } },
+            ],
+          },
         },
       }),
     ]);
