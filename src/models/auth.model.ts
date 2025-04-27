@@ -70,3 +70,8 @@ export interface IChangePassword {
   newPassword: string;
   currentPassword: string;
 }
+
+export interface IResetPassword {
+  token: string;
+  newPassword: string;
+}

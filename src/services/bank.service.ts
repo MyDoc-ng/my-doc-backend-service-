@@ -1,5 +1,5 @@
 import { prisma } from "../prisma/prisma";
-import { responseService } from "../services/response.service";
+import { responseService } from "./response.service";
 
 export class BankService {
   static async addBankAccount(

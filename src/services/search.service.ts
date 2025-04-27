@@ -108,18 +108,6 @@ export class SearchService {
             { patient: { phoneNumber: { contains: keyword, mode: "insensitive" } } },
           ],
         },
-        include: {
-          patient: true,
-          doctor: {
-            include: {
-              doctorProfile: {
-                include: {
-                  specialty: true
-                }
-              }
-            }
-          }
-        }
       }),
     ]);
 

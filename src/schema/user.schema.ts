@@ -86,3 +86,12 @@ export const doctorComplianceSchema = z.object({
   }),
 });
 
+export const resetPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+export const newPasswordSchema = z.object({
+  token: z.string(),
+  newPassword: z.string().min(8),
+});
+

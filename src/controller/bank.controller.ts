@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { BankService } from "../service/bank.service";
+import { BankService } from "../services/bank.service";
 
 export class BankController {
   static async addBankAccount(req: Request, res: Response, next: NextFunction) {

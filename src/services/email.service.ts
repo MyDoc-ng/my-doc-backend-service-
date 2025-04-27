@@ -3,6 +3,7 @@ import fs from "fs";
 import { configureNodemailer } from "../configs/configure_nodemailer";
 import Handlebars from "handlebars";
 import logger from "../logger";
+import { BadRequestException } from "../exception/bad-request";
 
 
 const transporter = configureNodemailer();
@@ -31,7 +32,7 @@ export class EmailService {
       console.log(`Email sent to ${options.to}`);
     } catch (error) {
       console.error(`Error sending email to ${options.to}:`, error);
-      throw new Error(`Failed to send email to ${options.to}`);
+      throw new BadRequestException(`Failed to send email to ${options.to}`);
     }
   }
 

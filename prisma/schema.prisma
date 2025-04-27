@@ -82,26 +82,28 @@ enum NotificationType {
 }
 
 model User {
-  id                String  @id @default(uuid())
-  name              String
-  email             String  @unique
-  password          String?
-  emailVerified     Boolean @default(false)
-  verificationToken String? @unique
-  googleId          String? @unique
-  facebookId        String? @unique
-  isProfileComplete Boolean @default(false)
-  profilePicture    String?
-  dateOfBirth       String?
-  gender            Gender  @default(MALE)
-  address           String?
-  isOnline          Boolean @default(false)
-  phoneNumber       String? @unique
+  id                   String    @id @default(uuid())
+  name                 String
+  email                String    @unique
+  password             String?
+  emailVerified        Boolean   @default(false)
+  verificationToken    String?   @unique
+  resetPasswordToken   String?   @unique
+  resetPasswordExpires DateTime?
+  googleId             String?   @unique
+  facebookId           String?   @unique
+  isProfileComplete    Boolean   @default(false)
+  profilePicture       String?
+  dateOfBirth          String?
+  gender               Gender    @default(MALE)
+  address              String?
+  isOnline             Boolean   @default(false)
+  phoneNumber          String?   @unique
 
   patientProfile   PatientProfile?
   doctorProfile    DoctorProfile?
   adminProfile     AdminProfile?
-  BankAccount BankAccount?
+  BankAccount      BankAccount?
   registrationStep RegistrationStep @default(CREATE_ACCOUNT)
 
   PatientReviews          Review[]         @relation(name: "PatientReviews")
@@ -122,8 +124,8 @@ model User {
   Notification            Notification[]
   roles                   UserRole[]
 
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   // deletedAt DateTime?
 
   @@map("users")
@@ -439,5 +441,5 @@ model BankAccount {
   accountNo   String
   bankName    String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime? @updatedAt
 }

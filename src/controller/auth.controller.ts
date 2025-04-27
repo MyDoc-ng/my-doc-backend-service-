@@ -163,4 +163,24 @@ export class AuthController {
       next(error);
     }
   }
+
+  static async initiatePasswordReset(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      const result = await AuthService.initiatePasswordReset(email);
+      res.status(result.status ?? 200).json(result);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const result = await AuthService.resetPassword(req.body);
+      res.status(result.status?? 200).json(result);
+    }
+    catch (error: any) {
+      next(error);
+    }
+  }
 }

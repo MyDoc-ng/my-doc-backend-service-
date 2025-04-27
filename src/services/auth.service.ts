@@ -9,6 +9,7 @@ import {
   IUserBio,
   IUserDocumentFiles,
   IUserPhoto,
+  IResetPassword,
 } from "../models/auth.model";
 import { OAuth2Client } from "google-auth-library";
 import { generateVerificationToken } from "../utils/generate_verify_token";
@@ -21,6 +22,7 @@ import { transformUserRoles } from "../utils/role.utils";
 import { Request } from "express";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 export class AuthService {
   /**
    * Register new User
@@ -41,8 +43,8 @@ export class AuthService {
           name: userExists.name,
           email: userExists.email,
           createdAt: userExists.createdAt,
-          roles: roles
-        }
+          roles: roles,
+        },
       });
     }
 
@@ -84,12 +86,19 @@ export class AuthService {
         roles: transformUserRoles(userWithRoles?.roles),
         verificationToken: newUser.verificationToken,
         createdAt: newUser.createdAt,
-      }
+      },
     });
   }
 
   static async submitBiodata(userData: IUserBio): Promise<any> {
-    const { userId, dateOfBirth, gender, phoneNumber, address, medicalHistory } = userData;
+    const {
+      userId,
+      dateOfBirth,
+      gender,
+      phoneNumber,
+      address,
+      medicalHistory,
+    } = userData;
 
     const userExists = await checkIfUserExists(userId);
 
@@ -123,9 +132,9 @@ export class AuthService {
         },
         include: {
           roles: {
-            include: { role: true }
-          }
-        }
+            include: { role: true },
+          },
+        },
       });
 
       if (medicalHistory) {
@@ -141,7 +150,7 @@ export class AuthService {
             pastSurgeries: medicalHistory.pastSurgeries,
             currentMeds: medicalHistory.currentMeds,
             drugAllergies: medicalHistory.drugAllergies,
-          }
+          },
         });
       }
 
@@ -154,7 +163,7 @@ export class AuthService {
         roles: transformUserRoles(user.roles),
         photo: user.profilePicture,
         registerationStep: user.registrationStep,
-      }
+      };
     });
 
     return responseService.success({
@@ -167,7 +176,7 @@ export class AuthService {
         roles: updatedUser.roles,
         photo: updatedUser.photo,
         registrationStep: updatedUser.registerationStep,
-      }
+      },
     });
   }
 
@@ -226,8 +235,8 @@ export class AuthService {
         photo: user.profilePicture,
         accessToken: accessToken,
         refreshToken: refreshToken,
-        registrationStep: user.registrationStep
-      }
+        registrationStep: user.registrationStep,
+      },
     });
   }
 
@@ -254,7 +263,7 @@ export class AuthService {
         name: updatedUser.name,
         email: updatedUser.email,
         photo: updatedUser.profilePicture,
-      }
+      },
     });
   }
 
@@ -322,7 +331,6 @@ export class AuthService {
       }
     }
 
-
     return responseService.success({
       message: "Logged In Successfully",
       data: {
@@ -334,7 +342,7 @@ export class AuthService {
           email: result.user.email,
           photo: picture,
         },
-      }
+      },
     });
   }
 
@@ -378,7 +386,7 @@ export class AuthService {
         photo: user.profilePicture,
         RegistrationStep: RegistrationStep.VERIFY_EMAIL,
         roles: transformUserRoles(user.roles),
-      }
+      },
     });
   }
 
@@ -388,7 +396,7 @@ export class AuthService {
 
     return responseService.success({
       message: "Logged out successfully",
-      data: []
+      data: [],
     });
   }
 
@@ -401,18 +409,16 @@ export class AuthService {
 
     return responseService.success({
       message: "Account deleted successfully",
-      data: []
+      data: [],
     });
   }
 
   static async refreshAccessToken(refreshToken: string) {
-
     if (!refreshToken) {
       return responseService.error({
         message: "Refresh token is required",
       });
     }
-
 
     const storedToken = await prisma.refreshToken.findUnique({
       where: { token: refreshToken },
@@ -424,7 +430,6 @@ export class AuthService {
         message: "Refresh not found",
       });
     }
-
 
     // Check if token is expired
     if (storedToken.expiresAt < new Date()) {
@@ -439,7 +444,10 @@ export class AuthService {
 
     try {
       // Verify token
-      const decoded = jwt.verify(refreshToken, process.env.REFRESH_SECRET as string) as any;
+      const decoded = jwt.verify(
+        refreshToken,
+        process.env.REFRESH_SECRET as string
+      ) as any;
 
       // Generate new tokens
       const newAccessToken = generateAuthToken(storedToken.user);
@@ -464,9 +472,8 @@ export class AuthService {
         data: {
           accessToken: newAccessToken,
           refreshToken: newRefreshToken,
-        }
+        },
       });
-
     } catch (error) {
       // Delete invalid token
       await prisma.refreshToken.delete({
@@ -479,7 +486,11 @@ export class AuthService {
     }
   }
 
-  static async sendVerificationEmail(name: string, email: string, verificationToken: string): Promise<void> {
+  static async sendVerificationEmail(
+    name: string,
+    email: string,
+    verificationToken: string
+  ): Promise<void> {
     const baseUrl = process.env.FRONTEND_APP_URL || "http://localhost:8000";
 
     const verificationLink = `${baseUrl}/verify-email?token=${verificationToken}`;
@@ -489,7 +500,7 @@ export class AuthService {
         to: email,
         subject: "Verify Your Email Address",
         templateName: EmailTemplates.VERIFICATION,
-        replacements: { name, verificationLink }
+        replacements: { NAME: name, VERIFICATION_LINK: verificationLink },
       });
     } catch (error) {
       throw new BadRequestException("Failed to send verification email");
@@ -523,12 +534,17 @@ export class AuthService {
     return { message: `User assigned role ${roleName}` };
   }
 
-  static async saveUserDocuments(userId: string, files: IUserDocumentFiles, req: Request) {
-
+  static async saveUserDocuments(
+    userId: string,
+    files: IUserDocumentFiles,
+    req: Request
+  ) {
     const serverUrl = `${req.protocol}://${req.get("host")}`;
 
     const formatPath = (file?: Express.Multer.File[]) =>
-      file?.[0] ? `${serverUrl}/${file[0].path.replace(/\\/g, "/")}` : undefined;
+      file?.[0]
+        ? `${serverUrl}/${file[0].path.replace(/\\/g, "/")}`
+        : undefined;
 
     const data = {
       userId,
@@ -551,15 +567,15 @@ export class AuthService {
       where: { userId },
       update: data,
       create: data,
-      include: { user: true }
+      include: { user: true },
     });
 
     await prisma.user.update({
       where: { id: userId },
       data: {
         registrationStep: RegistrationStep.PROVIDE_MEDICAL_CERTIFICATIONS,
-      }
-    })
+      },
+    });
 
     await this.addRoleToUser(userId, UserTypes.DOCTOR);
 
@@ -570,7 +586,7 @@ export class AuthService {
         userId: saved.userId,
         name: saved.user.name,
         email: saved.user.email,
-      }
+      },
     });
   }
 
@@ -597,8 +613,8 @@ export class AuthService {
       where: { id: data.userId },
       data: {
         registrationStep: RegistrationStep.PROFILE_COMPLETE,
-      }
-    })
+      },
+    });
 
     return responseService.success({
       message: "Compliance data saved successfully",
@@ -606,22 +622,122 @@ export class AuthService {
         id: userExists.id,
         name: userExists.name,
         email: userExists.email,
-      }
+      },
+    });
+  }
+
+  static async initiatePasswordReset(email: string): Promise<any> {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    });
+
+    if (!user) {
+      return responseService.notFoundError({
+        message: "Account not found",
+      });
+    }
+
+    const resetToken = generateVerificationToken();
+    const resetTokenExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetPasswordToken: resetToken,
+        resetPasswordExpires: resetTokenExpiry,
+      },
+    });
+
+    const baseUrl = process.env.FRONTEND_APP_URL || "http://localhost:8000";
+    const resetLink = `${baseUrl}/reset-password?token=${resetToken}`;
+
+    try {
+      await EmailService.sendEmail({
+        to: user.email,
+        subject: "Reset Your Password",
+        templateName: EmailTemplates.RESET_PASSWORD,
+        replacements: {
+          APP_NAME: process.env.APP_NAME as string,
+          RESET_LINK: resetLink,
+          CURRENT_YEAR: new Date().getFullYear() as unknown as string,
+        },
+      });
+
+      return responseService.success({
+        message: "Password reset instructions sent to your email",
+        data: {
+          email: user.email,
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException("Failed to send password reset email");
+    }
+  }
+
+  static async resetPassword(data: IResetPassword): Promise<any> {
+    const { token, newPassword } = data;
+
+    const user = await prisma.user.findFirst({
+      where: {
+        resetPasswordToken: token,
+        resetPasswordExpires: {
+          gt: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      return responseService.error({
+        message: "Invalid or expired reset token",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetPasswordToken: null,
+        resetPasswordExpires: null,
+      },
+    });
+
+    // Delete all refresh tokens for the user
+    await prisma.refreshToken.deleteMany({
+      where: { userId: user.id },
+    });
+
+    return responseService.success({
+      message: "Password reset successfully",
+      data: {
+        email: user.email,
+      },
     });
   }
 }
 
 function generateAuthToken(user: any) {
-  return jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET as string, {
-    expiresIn: "10h",
-  });
+  return jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET as string,
+    {
+      expiresIn: "10h",
+    }
+  );
 }
 
 function generateRefreshToken(user: any) {
-  return jwt.sign({ id: user.id, role: user.role }, process.env.REFRESH_SECRET as string, {
-    expiresIn: "7d",
-  });
+  return jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.REFRESH_SECRET as string,
+    {
+      expiresIn: "7d",
+    }
+  );
 }
-
-
-

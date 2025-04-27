@@ -1,6 +1,6 @@
 import express, { Router } from "express";
 import { validateData } from "../middleware/validation.middleware";
-import { doctorComplianceSchema, userBiodataSchema, userLoginSchema, userRegisterSchema } from "../schema/user.schema";
+import { doctorComplianceSchema, newPasswordSchema, resetPasswordSchema, userBiodataSchema, userLoginSchema, userRegisterSchema } from "../schema/user.schema";
 import { AuthController } from "../controller/auth.controller";
 import { upload } from "../middleware/upload";
 import { authenticate } from "../middleware/auth.middleware";
@@ -21,5 +21,9 @@ router.post('/logout', authenticate, AuthController.logout);
 // ! Only Doctors
 router.put('/upload-documents', uploadFiles, AuthController.uploadDocuments);
 router.put('/compliance-check', validateData(doctorComplianceSchema), AuthController.updateDoctorCompliance);
+
+// Password Reset Routes
+router.post('/request-password-reset', validateData(resetPasswordSchema), AuthController.initiatePasswordReset);
+router.post('/reset-password', validateData(newPasswordSchema), AuthController.resetPassword);
 
 export default router;

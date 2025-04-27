@@ -5,7 +5,7 @@ export const EmailTemplates = {
     VERIFICATION: "verification",
     RESET_PASSWORD: "reset-password",
     WELCOME: "welcome-email.html",
-    ORDER_CONFIRMATION: "order-confirmation",
+    APPOINTMENT_RESCHEDULE: "order-confirmation",
     NEWSLETTER: "newsletter",
   };
   

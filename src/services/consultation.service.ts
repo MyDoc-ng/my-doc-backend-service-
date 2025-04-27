@@ -351,8 +351,8 @@ export class ConsultationService {
     // await EmailService.sendEmail({
     //   to: consultation.patient?.email as string,
     //   subject: "Appointment Rescheduled",
-    //   templateName: EmailTemplates.VERIFICATION,
-    //   replacements: { consultation.doctor!.name },
+    //   templateName: EmailTemplates.APPOINTMENT_RESCHEDULE,
+    //   replacements: { name: consultation.doctor!.name },
     // });
 
     return responseService.success({
