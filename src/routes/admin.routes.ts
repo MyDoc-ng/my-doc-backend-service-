@@ -4,31 +4,54 @@ import { authenticate } from '../middleware/auth.middleware';
 import { AdminController } from '../controller/admin.controller';
 import { validateData } from '../middleware/validation.middleware';
 import { doctorLoginSchema, doctorSignupSchema } from '../schema/doctor.schema';
+import {
+  userStatusSchema,
+  doctorStatusSchema,
+  disputeResolutionSchema,
+  withdrawalStatusSchema,
+  commissionRateSchema,
+  consultationFilterSchema,
+  disputeFilterSchema,
+  paymentFilterSchema,
+  withdrawalFilterSchema
+} from '../schema/admin.schema';
 
 const router: Router = express.Router();
 
 logger.debug('Configuring admin routes');
 
-// User management
-router.get('/users', authenticate, AdminController.getUsers);
-// router.get('/users/:id', authenticate, AdminController.getUser);
-// router.put('/users/:id', authenticate, AdminController.updateUser);
-// router.delete('/users/:id', authenticate, AdminController.deleteUser);
+// Dashboard
+router.get('/dashboard', authenticate, AdminController.getDashboard);
 
-// // Doctor management
-// router.get('/doctors', authenticate, AdminController.getAllDoctors);
-// router.get('/doctors/:id', authenticate, AdminController.getDoctor);
-// router.put('/doctors/:id', authenticate, AdminController.updateDoctor);
-// router.delete('/doctors/:id', authenticate, AdminController.deleteDoctor);
+// Patients management
+router.get('/patients', authenticate, AdminController.getPatients);
+router.put('/patients/:userId/status', authenticate, validateData(userStatusSchema), AdminController.updateUserStatus);
 
-// // Analytics routes
-// router.get('/analytics/users', authenticate, AdminController.getUserAnalytics);
-// router.get('/analytics/doctors', authenticate, AdminController.getDoctorAnalytics);
-// router.get('/analytics/appointments', authenticate, AdminController.getAppointmentAnalytics);
+// Doctor management
+router.get('/doctors', authenticate, AdminController.getDoctors);
+router.put('/doctors/:doctorId/status', authenticate, validateData(doctorStatusSchema), AdminController.updateDoctorStatus);
+
+// Consultation management
+router.get('/consultations', authenticate, AdminController.getConsultations);
+
+// Dispute management
+router.get('/disputes', authenticate, AdminController.getDisputes);
+router.put('/disputes/:disputeId/resolve', authenticate, validateData(disputeResolutionSchema), AdminController.resolveDispute);
+
+// Payment management
+router.get('/payments', authenticate, AdminController.getPayments);
+router.get('/withdrawals', authenticate, AdminController.getWithdrawals);
+router.put('/withdrawals/:withdrawalId/status', authenticate, validateData(withdrawalStatusSchema), AdminController.updateWithdrawalStatus);
+
+// System configuration
+router.put('/config/commission', authenticate, validateData(commissionRateSchema), AdminController.updateCommissionRate);
+
+// API monitoring
+router.get('/api-logs', authenticate, AdminController.getApiLogs);
 
 //! Auth Enpoints
 // @ts-ignore
 router.post('/register', validateData(doctorSignupSchema), AdminController.store);
 router.post('/login', validateData(doctorLoginSchema), AdminController.store);
 
-export default router; 
+export default router;

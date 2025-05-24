@@ -8,6 +8,7 @@ import { appointmentSchema, cancelSchema, rescheduleAppointmentSchema } from "..
 import { SearchController } from "../controller/search.controller";
 import { BankController } from "../controller/bank.controller";
 import { bankAccountSchema } from "../schema/bank.schema";
+import { approvalMiddleware } from "../middleware/approval.middleware";
 
 const router: Router = express.Router();
 
@@ -18,7 +19,7 @@ router.get("/google/callback", DoctorController.oAuth2Callback);
 router.get("/google/:doctorId", DoctorController.googleOAuth2);
 router.get("/", authenticate, DoctorController.index);
 
-router.get("/profile", authenticate, DoctorController.profile);
+router.get("/profile", authenticate, approvalMiddleware, DoctorController.profile);
 router.get("/documents", authenticate, DoctorController.documents);
 
 router.get("/top", authenticate, DoctorController.topDoctors);

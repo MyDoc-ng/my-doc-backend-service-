@@ -13,6 +13,19 @@ enum Gender {
   FEMALE
 }
 
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  DEACTIVATED
+}
+
+enum DisputeStatus {
+  OPEN
+  RESOLVED
+  ESCALATED
+}
+
 enum UserTypes {
   ADMIN
   PATIENT
@@ -82,24 +95,28 @@ enum NotificationType {
 }
 
 model User {
-  id                   String    @id @default(uuid())
+  id                   String         @id @default(uuid())
   name                 String
-  email                String    @unique
+  email                String         @unique
   password             String?
-  emailVerified        Boolean   @default(false)
-  verificationToken    String?   @unique
-  resetPasswordToken   String?   @unique
+  emailVerified        Boolean        @default(false)
+  verificationToken    String?        @unique
+  resetPasswordToken   String?        @unique
   resetPasswordExpires DateTime?
-  googleId             String?   @unique
-  facebookId           String?   @unique
-  isProfileComplete    Boolean   @default(false)
+  googleId             String?        @unique
+  facebookId           String?        @unique
+  isProfileComplete    Boolean        @default(false)
   profilePicture       String?
   dateOfBirth          String?
-  gender               Gender    @default(MALE)
+  gender               Gender         @default(MALE)
   address              String?
-  isOnline             Boolean   @default(false)
-  phoneNumber          String?   @unique
-  lastActive                   DateTime?
+  isOnline             Boolean        @default(false)
+  phoneNumber          String?        @unique
+  lastActive           DateTime?
+  approvalStatus       ApprovalStatus @default(PENDING) 
+  approvedAt           DateTime? // When they were approved
+  rejectedAt           DateTime? // When they were rejected
+  deactivatedAt        DateTime? // When they were deactivated
 
   patientProfile   PatientProfile?
   doctorProfile    DoctorProfile?
@@ -124,6 +141,8 @@ model User {
   referringDoctorReferral Referral[]       @relation(name: "referringDoctorReferral")
   Notification            Notification[]
   roles                   UserRole[]
+  PatientDisputes         Dispute[]        @relation(name: "PatientDisputes")
+  DoctorDisputes          Dispute[]        @relation(name: "DoctorDisputes")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -282,6 +301,7 @@ model Consultation {
   doctorId           String?
   patientId          String?
   dDoctorId          String?
+  paymentId          String?
   dPatientId         String?
   status             AppointmentStatus @default(PENDING)
   consultationType   SessionType
@@ -297,8 +317,10 @@ model Consultation {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  patient User? @relation(fields: [patientId], references: [id], name: "PatientConsultations", onDelete: SetNull)
-  doctor  User? @relation(fields: [doctorId], references: [id], name: "DoctorConsultations", onDelete: SetNull)
+  patient  User?     @relation(fields: [patientId], references: [id], name: "PatientConsultations", onDelete: SetNull)
+  doctor   User?     @relation(fields: [doctorId], references: [id], name: "DoctorConsultations", onDelete: SetNull)
+  payment  Payment?
+  disputes Dispute[]
 
   @@map("consultations")
 }
@@ -324,19 +346,21 @@ model DoctorAvailability {
 }
 
 model Payment {
-  id            String        @id @default(uuid())
-  patientId     String?
-  dDoctorId     String?
-  dPatientId    String?
-  doctorId      String?
-  amount        Float
-  status        PaymentStatus @default(PENDING)
-  transactionId String        @unique
-  createdAt     DateTime      @default(now())
-  deletedAt     DateTime?
+  id             String        @id @default(uuid())
+  patientId      String?
+  dDoctorId      String?
+  consultationId String?       @unique
+  dPatientId     String?
+  doctorId       String?
+  amount         Float
+  status         PaymentStatus @default(PENDING)
+  transactionId  String        @unique
+  createdAt      DateTime      @default(now())
+  deletedAt      DateTime?
 
-  patient User? @relation(fields: [patientId], references: [id], name: "PatientPayments", onDelete: SetNull)
-  doctor  User? @relation(fields: [doctorId], references: [id], name: "DoctorPayments", onDelete: SetNull)
+  patient      User?         @relation(fields: [patientId], references: [id], name: "PatientPayments", onDelete: SetNull)
+  doctor       User?         @relation(fields: [doctorId], references: [id], name: "DoctorPayments", onDelete: SetNull)
+  consultation Consultation? @relation(fields: [consultationId], references: [id])
 
   @@map("payments")
 }
@@ -434,12 +458,30 @@ model ArchivedUser {
 }
 
 model BankAccount {
-  id          String   @id @default(uuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accountName String
   accountNo   String
   bankName    String
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
   updatedAt   DateTime? @updatedAt
+}
+
+model Dispute {
+  id             String        @id @default(uuid())
+  consultationId String
+  doctorId       String
+  patientId      String
+  reason         String
+  status         DisputeStatus @default(OPEN)
+  description    String?
+  resolution     String?
+  resolutionAt   DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  consultation Consultation @relation(fields: [consultationId], references: [id])
+  doctor       User         @relation("DoctorDisputes", fields: [doctorId], references: [id])
+  patient      User         @relation("PatientDisputes", fields: [patientId], references: [id])
 }
