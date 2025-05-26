@@ -343,6 +343,23 @@ export class AdminService {
 
       let doctorProfileUpdateData: any = {};
 
+      // Helper function to format reasons for storage
+      const formatReasons = (reasons?: string[], otherReason?: string) => {
+        const allReasons = reasons ? [...reasons] : [];
+        if (otherReason && otherReason.trim()) {
+          allReasons.push(otherReason.trim());
+        }
+        return allReasons.length > 0
+          ? {
+              selectedReasons: reasons || [],
+              otherReason: otherReason?.trim() || null,
+              allReasons,
+              timestamp: new Date().toISOString(),
+              adminId,
+            }
+          : null;
+      };
+
       switch (action) {
         case "approve":
           // Approve doctor - set profile as approved and activate user
@@ -359,16 +376,20 @@ export class AdminService {
             approvedAt: new Date(),
             rejectedAt: null,
             deactivatedAt: null,
+            rejectionReasons: null,
+            deactivationReasons: null,
           };
           break;
 
         case "reject":
           // Reject doctor - set profile as not approved and user as rejected
-          let rejectionReasons = reasons ? [...reasons] : [];
-          if (otherReason && otherReason.trim()) {
-            rejectionReasons.push(otherReason.trim());
-          }
+          // let rejectionReasons = reasons ? [...reasons] : [];
+          // if (otherReason && otherReason.trim()) {
+          //   rejectionReasons.push(otherReason.trim());
+          // }
 
+          const rejectionReasonsData = formatReasons(reasons, otherReason);
+          
           doctorProfileUpdateData = {
             isApproved: false,
           };
@@ -378,6 +399,8 @@ export class AdminService {
             rejectedAt: new Date(),
             approvedAt: null,
             deactivatedAt: null,
+            // Store rejection reasons
+            rejectionReasons: rejectionReasonsData,
           };
           break;
 
@@ -393,15 +416,25 @@ export class AdminService {
             ...updateData,
             approvalStatus: ApprovalStatus.ACTIVATED,
             deactivatedAt: null,
+            // Clear deactivation reasons when reactivating
+            deactivationReasons: null,
           };
           break;
 
         case "deactivate":
-          // Deactivate doctor
+          // Deactivate doctor - collect reasons similar to reject
+          // let deactivationReasons = reasons ? [...reasons] : [];
+          // if (otherReason && otherReason.trim()) {
+          //   deactivationReasons.push(otherReason.trim());
+          // }
+          const deactivationReasonsData = formatReasons(reasons, otherReason);
+
           updateData = {
             ...updateData,
             approvalStatus: ApprovalStatus.DEACTIVATED,
             deactivatedAt: new Date(),
+            // Store deactivation reasons
+            deactivationReasons: deactivationReasonsData,
           };
           break;
       }
@@ -421,7 +454,7 @@ export class AdminService {
           await tx.review.create({
             data: {
               doctorId: doctorId,
-              patientId: adminId, 
+              patientId: adminId,
               rating: approvalData.initialRating,
               comment: `Initial system rating based on professional assessment. Years of experience: ${approvalData.yearsOfExperience}, Clients seen: ${approvalData.numberClientsSeen}`,
               createdAt: new Date(),
@@ -439,18 +472,26 @@ export class AdminService {
                 specialty: true,
               },
             },
-            DoctorReviews: true, 
+            DoctorReviews: true,
           },
         });
       });
 
       // Optional: Send notification email based on action
-      // await EmailService.sendStatusUpdateEmail(doctor.email, action, rejectionReasons);
+      // Include reasons for reject and deactivate actions
+      const emailReasons =
+        action === "reject" || action === "deactivate"
+          ? (reasons || [])
+              .concat(otherReason ? [otherReason] : [])
+              .filter(Boolean)
+          : undefined;
+      // await EmailService.sendStatusUpdateEmail(doctor.email, action, emailReasons);
 
       logger.info(`Doctor ${action} successfully`, {
         doctorId,
         action,
         ...(reasons && { reasons }),
+        ...(otherReason && { otherReason }),
       });
 
       return responseService.success({
