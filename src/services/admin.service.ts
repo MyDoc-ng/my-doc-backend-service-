@@ -1,5 +1,6 @@
 import {
   AppointmentStatus,
+  ApprovalStatus,
   DisputeStatus,
   PaymentStatus,
   UserTypes,
@@ -8,6 +9,8 @@ import {
 import { prisma } from "../prisma/prisma";
 import { responseService } from "./response.service";
 import logger from "../logger";
+import { BadRequestException } from "../exception/bad-request";
+import { EmailService } from "./email.service";
 
 export class AdminService {
   // Dashboard statistics
@@ -141,7 +144,19 @@ export class AdminService {
   }
 
   // Doctor Management
-  static async getDoctors(filters?: any) {
+  static async getDoctors(status: ApprovalStatus) {
+    if (!status) {
+      status = ApprovalStatus.PENDING;
+    }
+
+    // Validate status
+    const validStatuses = Object.values(ApprovalStatus);
+    if (!validStatuses.includes(status.toLocaleUpperCase() as ApprovalStatus)) {
+      throw new BadRequestException(`Invalid doctor status: ${status}`);
+    }
+    // Ensure status is in uppercase
+    status = status.toUpperCase() as ApprovalStatus;
+
     try {
       const doctors = await prisma.user.findMany({
         where: {
@@ -152,7 +167,7 @@ export class AdminService {
               },
             },
           },
-          ...filters,
+          approvalStatus: status,
         },
         include: {
           doctorProfile: {
@@ -187,31 +202,275 @@ export class AdminService {
     }
   }
 
-  static async updateDoctorStatus(doctorId: string, isApproved: boolean) {
+  // static async updateDoctorStatus(doctorId: string, isApproved: boolean) {
+  //   try {
+  //     const doctor = await prisma.doctorProfile.update({
+  //       where: { userId: doctorId },
+  //       data: { isApproved },
+  //     });
+
+  //     return responseService.success({
+  //       message: `Doctor ${isApproved ? "approved" : "suspended"} successfully`,
+  //       data: doctor,
+  //     });
+  //   } catch (error: any) {
+  //     logger.error("Error updating doctor status", {
+  //       error: error.message,
+  //       stack: error.stack,
+  //       doctorId,
+  //     });
+  //     return responseService.error({
+  //       message: "Failed to update doctor status",
+  //       error: error.message,
+  //     });
+  //   }
+  // }
+
+  // Patient Management
+
+  static async updateDoctorStatus(
+    adminId: string,
+    doctorId: string,
+    action: "approve" | "reject" | "activate" | "deactivate",
+    reasons?: string[],
+    otherReason?: string,
+    approvalData?: {
+      yearsOfExperience: number;
+      numberClientsSeen: number;
+      initialRating: number;
+    }
+  ) {
     try {
-      const doctor = await prisma.doctorProfile.update({
-        where: { userId: doctorId },
-        data: { isApproved },
+      // Validation checks
+      if (!doctorId) {
+        return responseService.error({
+          message: "Doctor ID is required",
+          status: 400,
+        });
+      }
+
+      if (
+        !action ||
+        !["approve", "reject", "activate", "deactivate"].includes(action)
+      ) {
+        return responseService.error({
+          message:
+            "Valid action is required (approve, reject, activate, deactivate)",
+          status: 400,
+        });
+      }
+
+      // For approve action, approval data is required
+      if (
+        action === "approve" &&
+        (!approvalData ||
+          !approvalData.yearsOfExperience ||
+          !approvalData.numberClientsSeen ||
+          !approvalData.initialRating)
+      ) {
+        return responseService.error({
+          message:
+            "Years of experience, number of clients seen, and initial rating are required for approval",
+          status: 400,
+        });
+      }
+
+      // Validate approval data ranges if provided
+      if (action === "approve" && approvalData) {
+        if (
+          approvalData.yearsOfExperience < 0 ||
+          approvalData.yearsOfExperience > 50
+        ) {
+          return responseService.error({
+            message: "Years of experience must be between 0 and 50",
+            status: 400,
+          });
+        }
+
+        if (approvalData.numberClientsSeen < 0) {
+          return responseService.error({
+            message: "Number of clients seen cannot be negative",
+            status: 400,
+          });
+        }
+
+        if (approvalData.initialRating < 1 || approvalData.initialRating > 5) {
+          return responseService.error({
+            message: "Initial rating must be between 1 and 5",
+            status: 400,
+          });
+        }
+      }
+
+      // Check if doctor exists and has DOCTOR role
+      const doctor = await prisma.user.findFirst({
+        where: {
+          id: doctorId,
+          roles: {
+            some: {
+              role: {
+                name: UserTypes.DOCTOR,
+              },
+            },
+          },
+        },
+        include: {
+          doctorProfile: {
+            include: {
+              specialty: true,
+            },
+          },
+        },
+      });
+
+      if (!doctor) {
+        return responseService.error({
+          message: "Doctor not found",
+          status: 404,
+        });
+      }
+
+      if (!doctor.doctorProfile) {
+        return responseService.error({
+          message: "Doctor profile not found",
+          status: 404,
+        });
+      }
+
+      let updateData: any = {
+        updatedAt: new Date(),
+      };
+
+      let doctorProfileUpdateData: any = {};
+
+      switch (action) {
+        case "approve":
+          // Approve doctor - set profile as approved and activate user
+          doctorProfileUpdateData = {
+            isApproved: true,
+            // Update experience if provided in approval data
+            ...(approvalData?.yearsOfExperience && {
+              experience: approvalData.yearsOfExperience,
+            }),
+          };
+          updateData = {
+            ...updateData,
+            approvalStatus: ApprovalStatus.ACTIVATED,
+            approvedAt: new Date(),
+            rejectedAt: null,
+            deactivatedAt: null,
+          };
+          break;
+
+        case "reject":
+          // Reject doctor - set profile as not approved and user as rejected
+          let rejectionReasons = reasons ? [...reasons] : [];
+          if (otherReason && otherReason.trim()) {
+            rejectionReasons.push(otherReason.trim());
+          }
+
+          doctorProfileUpdateData = {
+            isApproved: false,
+          };
+          updateData = {
+            ...updateData,
+            approvalStatus: ApprovalStatus.REJECTED,
+            rejectedAt: new Date(),
+            approvedAt: null,
+            deactivatedAt: null,
+          };
+          break;
+
+        case "activate":
+          // Activate doctor - must be previously approved
+          if (!doctor.doctorProfile.isApproved) {
+            return responseService.error({
+              message: "Doctor must be approved before activation",
+              status: 400,
+            });
+          }
+          updateData = {
+            ...updateData,
+            approvalStatus: ApprovalStatus.ACTIVATED,
+            deactivatedAt: null,
+          };
+          break;
+
+        case "deactivate":
+          // Deactivate doctor
+          updateData = {
+            ...updateData,
+            approvalStatus: ApprovalStatus.DEACTIVATED,
+            deactivatedAt: new Date(),
+          };
+          break;
+      }
+
+      // Update user and doctor profile in a transaction
+      const updatedDoctor = await prisma.$transaction(async (tx) => {
+        // Update doctor profile if needed
+        if (Object.keys(doctorProfileUpdateData).length > 0) {
+          await tx.doctorProfile.update({
+            where: { userId: doctorId },
+            data: doctorProfileUpdateData,
+          });
+        }
+
+        // Create initial review for approved doctor if approval data provided
+        if (action === "approve" && approvalData) {
+          await tx.review.create({
+            data: {
+              doctorId: doctorId,
+              patientId: adminId, 
+              rating: approvalData.initialRating,
+              comment: `Initial system rating based on professional assessment. Years of experience: ${approvalData.yearsOfExperience}, Clients seen: ${approvalData.numberClientsSeen}`,
+              createdAt: new Date(),
+            },
+          });
+        }
+
+        // Update user
+        return await tx.user.update({
+          where: { id: doctorId },
+          data: updateData,
+          include: {
+            doctorProfile: {
+              include: {
+                specialty: true,
+              },
+            },
+            DoctorReviews: true, 
+          },
+        });
+      });
+
+      // Optional: Send notification email based on action
+      // await EmailService.sendStatusUpdateEmail(doctor.email, action, rejectionReasons);
+
+      logger.info(`Doctor ${action} successfully`, {
+        doctorId,
+        action,
+        ...(reasons && { reasons }),
       });
 
       return responseService.success({
-        message: `Doctor ${isApproved ? "approved" : "suspended"} successfully`,
-        data: doctor,
+        message: `Doctor ${action}d successfully`,
+        data: updatedDoctor,
       });
     } catch (error: any) {
-      logger.error("Error updating doctor status", {
+      logger.error(`Error ${action} doctor`, {
         error: error.message,
         stack: error.stack,
         doctorId,
+        action,
       });
       return responseService.error({
-        message: "Failed to update doctor status",
+        message: `Failed to ${action} doctor`,
         error: error.message,
       });
     }
   }
 
-  // Patient Management
   static async getPatients(filters?: any) {
     try {
       const patients = await prisma.user.findMany({
@@ -249,7 +508,7 @@ export class AdminService {
         isActive: patient.isOnline,
         createdAt: patient.createdAt,
         updatedAt: patient.updatedAt,
-      }))
+      }));
 
       return responseService.success({
         message: "Patients fetched successfully",

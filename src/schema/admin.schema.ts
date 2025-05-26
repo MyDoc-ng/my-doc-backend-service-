@@ -10,9 +10,9 @@ export const userStatusSchema = z.object({
 
 // Doctor status update schema
 export const doctorStatusSchema = z.object({
-  approvalStatus: z.string({
-    required_error: 'Approval status is required',
-    invalid_type_error: 'Approval status must be a string',
+  action: z.string({
+    required_error: 'action is required',
+    invalid_type_error: 'action must be a string',
   }),
 });
 

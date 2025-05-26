@@ -17,8 +17,6 @@ import { BadRequestException } from "../exception/bad-request";
 import { DoctorService } from "./doctor.service";
 import { calendar } from "../utils/oauthUtils";
 import { responseService } from "./response.service";
-import { EmailService } from "./email.service";
-import { EmailTemplates } from "../emails/emailTemplates";
 
 interface ICancelAppointment {
   appointmentId: string;

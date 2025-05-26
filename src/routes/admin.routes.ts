@@ -15,6 +15,7 @@ import {
   paymentFilterSchema,
   withdrawalFilterSchema
 } from '../schema/admin.schema';
+import { cancelSchema } from '../schema/appointment.schema';
 
 const router: Router = express.Router();
 
@@ -30,6 +31,7 @@ router.put('/patients/:userId/status', authenticate, validateData(userStatusSche
 // Doctor management
 router.get('/doctors', authenticate, AdminController.getDoctors);
 router.put('/doctors/:doctorId/status', authenticate, validateData(doctorStatusSchema), AdminController.updateDoctorStatus);
+
 
 // Consultation management
 router.get('/consultations', authenticate, AdminController.getConsultations);
