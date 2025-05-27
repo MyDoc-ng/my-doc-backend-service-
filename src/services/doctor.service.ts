@@ -19,6 +19,7 @@ import { BadRequestException } from "../exception/bad-request";
 import { responseService } from "./response.service";
 import { checkIfUserExists } from "../utils/checkIfUserExists";
 import { transformUserRoles } from "../utils/role.utils";
+import { generateWithdrawalReference } from "../utils/helpers";
 
 interface FilterDoctor {
   specialization?: string;
@@ -504,6 +505,7 @@ export class DoctorService {
         doctorId,
         amount,
         status: WithdrawalStatus.PENDING,
+        reference: generateWithdrawalReference()
       },
     });
 
