@@ -22,7 +22,7 @@ export async function approvalMiddleware(req: Request, res: Response, next: Next
         throw new BadRequestException("User not found", "USER_NOT_FOUND");
     }
 
-    if (user.approvalStatus!== ApprovalStatus.APPROVED) {
+    if (user.approvalStatus!== ApprovalStatus.ACTIVATED) {
         throw new BadRequestException("User not approved");
     }
 
