@@ -303,7 +303,7 @@ export class ConsultationService {
 
     const appointment = await prisma.consultation.findUnique({
       where: {
-        id: appointmentId
+        id: appointmentId,
       },
     });
 
@@ -318,23 +318,25 @@ export class ConsultationService {
     const startTime = new Date(timeIn24Hr);
     const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // 1 hour later
 
-    const consultation =  await prisma.consultation.update({
+    const consultation = await prisma.consultation.update({
       where: { id: appointmentId },
-      data: { 
-        startTime: startTime, 
+      data: {
+        startTime: startTime,
         endTime: endTime,
-        status: AppointmentStatus.CANCELLED 
+        status: AppointmentStatus.CANCELLED,
       },
       include: {
         doctor: true,
         patient: true,
-      }
+      },
     });
 
     await NotificationService.createNotification(
       appointment.patientId!,
       "Appointment Rescheduled",
-      `Your appointment with ${consultation.doctor!.name}, has been rescheduled`,
+      `Your appointment with ${
+        consultation.doctor!.name
+      }, has been rescheduled`,
       NotificationType.APPOINTMENT_RESCHEDULED
     );
 
@@ -356,7 +358,7 @@ export class ConsultationService {
     return responseService.success({
       message: "Appointment rescheduled successfully",
       data: consultation,
-    }); 
+    });
   }
 
   static async acceptAppointment(appointmentId: string, doctorId: string) {
