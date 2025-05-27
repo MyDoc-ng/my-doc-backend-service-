@@ -11,6 +11,9 @@ import { responseService } from "./response.service";
 import logger from "../logger";
 import { BadRequestException } from "../exception/bad-request";
 import { EmailService } from "./email.service";
+import { generateWithdrawalReference } from "../utils/helpers";
+
+type UnifiedStatus = PaymentStatus | WithdrawalStatus;
 
 export class AdminService {
   // Dashboard statistics
@@ -389,7 +392,7 @@ export class AdminService {
           // }
 
           const rejectionReasonsData = formatReasons(reasons, otherReason);
-          
+
           doctorProfileUpdateData = {
             isApproved: false,
           };
@@ -690,32 +693,379 @@ export class AdminService {
     }
   }
 
-  // Payment Management
-  static async getPayments(filters?: any) {
-    try {
-      const payments = await prisma.payment.findMany({
-        where: filters,
-        include: {
-          doctor: true,
-          patient: true,
-          consultation: true,
-        },
-      });
+  // Get all transactions with proper categorization
+  static async getAllTransactions(params: {
+    doctorId?: string;
+    status?: UnifiedStatus;
+    startDate?: string;
+    endDate?: string;
+    category?:
+      | "payment_requests"
+      | "payments_received"
+      | "income"
+      | "transaction_history"
+      | "all";
+  }) {
+    const dateFilter =
+      params.startDate && params.endDate
+        ? {
+            gte: new Date(params.startDate),
+            lte: new Date(params.endDate),
+          }
+        : undefined;
 
-      return responseService.success({
-        message: "Payments fetched successfully",
-        data: payments,
-      });
-    } catch (error: any) {
-      logger.error("Error fetching payments", {
-        error: error.message,
-        stack: error.stack,
-      });
+    let result: any = {};
+
+    switch (params.category) {
+      case "payment_requests":
+        result = await this.getPaymentRequests(
+          params.doctorId,
+          dateFilter,
+          params.status
+        );
+        break;
+
+      case "payments_received":
+        result = await this.getPaymentsReceived(
+          params.doctorId,
+          dateFilter,
+          params.status
+        );
+        break;
+
+      case "income":
+        result = await this.getIncomeTransactions(params.doctorId, dateFilter);
+        break;
+
+      case "transaction_history":
+        result = await this.getTransactionHistory(params.doctorId, dateFilter);
+        break;
+
+      default:
+        result = await this.getAllCategorizedTransactions(params);
+        break;
+    }
+
+    return responseService.success({
+      message: "Transactions fetched successfully",
+      data: result,
+    });
+  }
+
+  // Get payment requests (from withdrawal model)
+  private static async getPaymentRequests(
+    doctorId?: string,
+    dateFilter?: any,
+    status?: UnifiedStatus
+  ) {
+    const where: any = {};
+
+    if (doctorId) where.doctorId = doctorId;
+    if (status) where.status = status;
+    if (dateFilter) where.createdAt = dateFilter;
+
+    const withdrawalRequests = await prisma.withdrawal.findMany({
+      where,
+      include: {
+        doctor: {
+          select: { id: true, name: true, profilePicture: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return {
+      category: "payment_requests",
+      count: withdrawalRequests.length,
+      data: withdrawalRequests.map((request) => ({
+        id: request.id,
+        type: "withdrawal_request",
+        amount: request.amount,
+        status: request.status,
+        createdAt: request.createdAt,
+        doctor: request.doctor,
+        description: "Withdrawal Request",
+        reference: request.reference || null,
+      })),
+    };
+  }
+
+  // Get payments received (successful consultation payments)
+  private static async getPaymentsReceived(
+    doctorId?: string,
+    dateFilter?: any,
+    status?: UnifiedStatus
+  ) {
+    const where: any = {
+      status: PaymentStatus.SUCCESSFUL,
+    };
+
+    if (status) where.status = status;
+    if (dateFilter) where.createdAt = dateFilter;
+
+    if (doctorId) {
+      where.consultation = {
+        doctorId: doctorId,
+      };
+    }
+
+    const payments = await prisma.payment.findMany({
+      where,
+      include: {
+        consultation: {
+          include: {
+            doctor: { select: { id: true, name: true, profilePicture: true } },
+            patient: { select: { id: true, name: true, profilePicture: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return {
+      category: "payments_received",
+      count: payments.length,
+      data: payments.map((payment) => ({
+        id: payment.id,
+        type: "payment_received",
+        amount: payment.amount,
+        status: payment.status,
+        createdAt: payment.createdAt,
+        consultation: payment.consultation,
+        description: `Payment for Consultation`,
+        reference: payment.transactionId,
+      })),
+    };
+  }
+
+  // Get income transactions (all successful payments for doctor)
+  private static async getIncomeTransactions(
+    doctorId?: string,
+    dateFilter?: any
+  ) {
+    const where: any = {
+      status: PaymentStatus.SUCCESSFUL,
+    };
+
+    if (dateFilter) where.createdAt = dateFilter;
+
+    if (doctorId) {
+      where.consultation = {
+        doctorId: doctorId,
+      };
+    }
+
+    const incomePayments = await prisma.payment.findMany({
+      where,
+      include: {
+        consultation: {
+          include: {
+            doctor: { select: { id: true, name: true, profilePicture: true } },
+            patient: { select: { id: true, name: true, profilePicture: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Calculate total income
+    const totalIncome = incomePayments.reduce(
+      (sum, payment) => sum + payment.amount,
+      0
+    );
+
+    return {
+      category: "income",
+      totalIncome,
+      count: incomePayments.length,
+      data: incomePayments.map((payment) => ({
+        id: payment.id,
+        type: "income",
+        amount: payment.amount,
+        status: payment.status,
+        createdAt: payment.createdAt,
+        consultation: payment.consultation,
+        description: `Payment for Consultation`,
+        reference: payment.transactionId,
+      })),
+    };
+  }
+
+  // Get transaction history (all withdrawals for a doctor)
+  private static async getTransactionHistory(
+    doctorId?: string,
+    dateFilter?: any
+  ) {
+    const where: any = {};
+
+    if (doctorId) where.doctorId = doctorId;
+    if (dateFilter) where.createdAt = dateFilter;
+
+    const withdrawals = await prisma.withdrawal.findMany({
+      where,
+      include: {
+        doctor: {
+          select: { id: true, name: true, profilePicture: true },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return {
+      category: "transaction_history",
+      count: withdrawals.length,
+      data: withdrawals.map((withdrawal) => ({
+        id: withdrawal.id,
+        type: "withdrawal",
+        amount: withdrawal.amount,
+        status: withdrawal.status,
+        createdAt: withdrawal.createdAt,
+        doctor: withdrawal.doctor,
+        description: `Withdrawal Request`,
+        reference: withdrawal.reference || null,
+      })),
+    };
+  }
+
+  // Get all categorized transactions
+  private static async getAllCategorizedTransactions(params: any) {
+    const [paymentRequests, paymentsReceived, income, transactionHistory] =
+      await Promise.all([
+        this.getPaymentRequests(
+          params.doctorId,
+          params.startDate && params.endDate
+            ? {
+                gte: new Date(params.startDate),
+                lte: new Date(params.endDate),
+              }
+            : undefined,
+          params.status
+        ),
+        this.getPaymentsReceived(
+          params.doctorId,
+          params.startDate && params.endDate
+            ? {
+                gte: new Date(params.startDate),
+                lte: new Date(params.endDate),
+              }
+            : undefined,
+          params.status
+        ),
+        this.getIncomeTransactions(
+          params.doctorId,
+          params.startDate && params.endDate
+            ? {
+                gte: new Date(params.startDate),
+                lte: new Date(params.endDate),
+              }
+            : undefined
+        ),
+        this.getTransactionHistory(
+          params.doctorId,
+          params.startDate && params.endDate
+            ? {
+                gte: new Date(params.startDate),
+                lte: new Date(params.endDate),
+              }
+            : undefined
+        ),
+      ]);
+
+    return {
+      paymentRequests,
+      paymentsReceived,
+      income,
+      transactionHistory,
+      summary: {
+        totalPaymentRequests: paymentRequests.count,
+        totalPaymentsReceived: paymentsReceived.count,
+        totalIncome: income.totalIncome,
+        totalTransactions: transactionHistory.count,
+      },
+    };
+  }
+
+  // Get doctor's balance summary
+  static async getDoctorBalanceSummary(doctorId: string) {
+    // Get total income from completed consultations
+    const totalIncome = await prisma.payment.aggregate({
+      where: {
+        consultation: { doctorId },
+        status: PaymentStatus.SUCCESSFUL,
+      },
+      _sum: { amount: true },
+    });
+
+    // Get total withdrawn amount
+    const totalWithdrawn = await prisma.withdrawal.aggregate({
+      where: {
+        doctorId,
+        status: WithdrawalStatus.APPROVED,
+      },
+      _sum: { amount: true },
+    });
+
+    // Get pending withdrawal requests
+    const pendingWithdrawals = await prisma.withdrawal.aggregate({
+      where: {
+        doctorId,
+        status: WithdrawalStatus.PENDING,
+      },
+      _sum: { amount: true },
+    });
+
+    const availableBalance =
+      (totalIncome._sum.amount || 0) -
+      (totalWithdrawn._sum.amount || 0) -
+      (pendingWithdrawals._sum.amount || 0);
+
+    return responseService.success({
+      message: "Balance summary fetched successfully",
+      data: {
+        totalIncome: totalIncome._sum.amount || 0,
+        totalWithdrawn: totalWithdrawn._sum.amount || 0,
+        pendingWithdrawals: pendingWithdrawals._sum.amount || 0,
+        availableBalance: Math.max(availableBalance, 0),
+        currency: "NGN",
+      },
+    });
+  }
+
+  // Create withdrawal request
+  static async createWithdrawalRequest(
+    doctorId: string,
+    amount: number,
+  ) {
+    // Check available balance
+    const balanceSummary = await this.getDoctorBalanceSummary(doctorId);
+    // @ts-ignore
+    const availableBalance = balanceSummary.data.availableBalance!;
+
+    if (amount > availableBalance) {
       return responseService.error({
-        message: "Failed to fetch payments",
-        error: error.message,
+        message: "Insufficient balance for withdrawal",
+        status: 400,
       });
     }
+
+    const withdrawal = await prisma.withdrawal.create({
+      data: {
+        doctorId,
+        amount,
+        status: WithdrawalStatus.PENDING,
+        reference: generateWithdrawalReference(),
+      },
+      include: {
+        doctor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    return responseService.success({
+      message: "Withdrawal request created successfully",
+      data: withdrawal,
+    });
   }
 
   static async getWithdrawals(filters?: any) {

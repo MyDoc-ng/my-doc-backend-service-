@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import logger from "../logger";
 import { AuthService } from "../services/auth.service";
 import { AdminService } from "../services/admin.service";
-import { ApprovalStatus } from "@prisma/client";
+import { ApprovalStatus, PaymentStatus, WithdrawalStatus } from "@prisma/client";
 
 export class AdminController {
   // Dashboard
@@ -113,29 +113,40 @@ export class AdminController {
 
   // Consultation Management
 
-  static async updateDoctorStatus(req: Request, res: Response, next: NextFunction): Promise<void> {
+  static async updateDoctorStatus(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> {
     try {
       const { doctorId } = req.params;
       const adminId = req.user?.id;
       const { action, reasons, otherReason, approvalData } = req.body;
-  
-      logger.info(`${action || 'unknown'} doctor request`, { 
-        doctorId, 
+
+      logger.info(`${action || "unknown"} doctor request`, {
+        doctorId,
         adminId,
-        action, 
-        reasons, 
+        action,
+        reasons,
         otherReason,
-        approvalData 
+        approvalData,
       });
-      
-      const result = await AdminService.updateDoctorStatus(adminId, doctorId, action, reasons, otherReason, approvalData);
+
+      const result = await AdminService.updateDoctorStatus(
+        adminId,
+        doctorId,
+        action,
+        reasons,
+        otherReason,
+        approvalData
+      );
       res.status(result.status || 200).json(result);
     } catch (error: any) {
-      logger.error('Error updating doctor status', {
+      logger.error("Error updating doctor status", {
         error: error.message,
         stack: error.stack,
         doctorId: req.params.doctorId,
-        action: req.body.action
+        action: req.body.action,
       });
       next(error);
     }
@@ -206,21 +217,161 @@ export class AdminController {
   }
 
   // Payment Management
-  static async getPayments(
+  // Get all transactions with filtering
+  static async getAllTransactions(
     req: Request,
     res: Response,
     next: NextFunction
-  ): Promise<void> {
+  ) {
     try {
-      const filters = req.query;
-      logger.info("Fetching payments", { filters });
-      const result = await AdminService.getPayments(filters);
-      res.status(result.status || 200).json(result);
-    } catch (error: any) {
-      logger.error("Error fetching payments", {
-        error: error.message,
-        stack: error.stack,
+      const { doctorId, status, startDate, endDate } =
+        req.query;
+
+      const result = await AdminService.getAllTransactions({
+        doctorId: doctorId as string,
+        status: status as PaymentStatus | WithdrawalStatus,
+        startDate: startDate as string,
+        endDate: endDate as string,
+        category: 'all',
       });
+
+      res.status(result.status || 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get payment requests (withdrawal requests)
+  static async getPaymentRequests(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { doctorId, status, startDate, endDate } = req.query;
+
+      const result = await AdminService.getAllTransactions({
+        doctorId: doctorId as string,
+        status: status as PaymentStatus | WithdrawalStatus,
+        startDate: startDate as string,
+        endDate: endDate as string,
+        category: "payment_requests",
+      });
+
+      res.status(result.status || 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get payments received
+  static async getPaymentsReceived(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { doctorId, status, startDate, endDate } = req.query;
+
+      const result = await AdminService.getAllTransactions({
+        doctorId: doctorId as string,
+        status: status as PaymentStatus | WithdrawalStatus,
+        startDate: startDate as string,
+        endDate: endDate as string,
+        category: "payments_received",
+      });
+
+      res.status(result.status || 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get income transactions
+  static async getIncomeTransactions(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { doctorId, startDate, endDate } = req.query;
+
+      const result = await AdminService.getAllTransactions({
+        doctorId: doctorId as string,
+        startDate: startDate as string,
+        endDate: endDate as string,
+        category: "income",
+      });
+
+      res.status(result.status || 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get transaction history
+  static async getTransactionHistory(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { doctorId, startDate, endDate } = req.query;
+
+      const result = await AdminService.getAllTransactions({
+        doctorId: doctorId as string,
+        startDate: startDate as string,
+        endDate: endDate as string,
+        category: "transaction_history",
+      });
+
+      res.status(result.status || 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get doctor balance summary
+  static async getDoctorBalance(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { doctorId } = req.params;
+
+      const result = await AdminService.getDoctorBalanceSummary(doctorId);
+
+      res.status(result.status || 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Create withdrawal request
+  static async createWithdrawalRequest(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { doctorId, amount, bankDetails } = req.body;
+
+      // if (!doctorId || !amount) {
+      //   return res.status(400).json(
+      //     responseService.error({
+      //       message: "Doctor ID and amount are required",
+      //     })
+      //   );
+      // }
+
+      const result = await AdminService.createWithdrawalRequest(
+        doctorId,
+        amount,
+      );
+
+      res.status(result.status || 200).json(result);
+    } catch (error) {
       next(error);
     }
   }

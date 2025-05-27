@@ -144,8 +144,8 @@ model User {
   PatientDisputes         Dispute[]        @relation(name: "PatientDisputes")
   DoctorDisputes          Dispute[]        @relation(name: "DoctorDisputes")
 
-  rejectionReasons             Json?
-  deactivationReasons          Json?
+  rejectionReasons    Json?
+  deactivationReasons Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -410,6 +410,7 @@ model Withdrawal {
   doctorId  String?
   dDoctorId String?
   amount    Float
+  reference String
   status    WithdrawalStatus @default(PENDING)
   createdAt DateTime         @default(now())
   deletedAt DateTime?
