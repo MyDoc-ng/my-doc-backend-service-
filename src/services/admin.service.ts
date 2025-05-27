@@ -12,6 +12,7 @@ import logger from "../logger";
 import { BadRequestException } from "../exception/bad-request";
 import { EmailService } from "./email.service";
 import { generateWithdrawalReference } from "../utils/helpers";
+import { WithdrawalStatusHistoryEntry } from "../types/withdrawal.types";
 
 type UnifiedStatus = PaymentStatus | WithdrawalStatus;
 
@@ -1032,10 +1033,7 @@ export class AdminService {
   }
 
   // Create withdrawal request
-  static async createWithdrawalRequest(
-    doctorId: string,
-    amount: number,
-  ) {
+  static async createWithdrawalRequest(doctorId: string, amount: number) {
     // Check available balance
     const balanceSummary = await this.getDoctorBalanceSummary(doctorId);
     // @ts-ignore
@@ -1093,33 +1091,247 @@ export class AdminService {
     }
   }
 
-  static async updateWithdrawalStatus(
-    withdrawalId: string,
-    status: WithdrawalStatus
-  ) {
-    try {
-      const withdrawal = await prisma.withdrawal.update({
-        where: { id: withdrawalId },
-        data: { status },
-      });
+  // static async updateWithdrawalStatus(
+  //   withdrawalId: string,
+  //   status: WithdrawalStatus
+  // ) {
+  //   try {
+  //     const withdrawal = await prisma.withdrawal.update({
+  //       where: { id: withdrawalId },
+  //       data: { status },
+  //     });
 
-      return responseService.success({
-        message: `Withdrawal ${status.toLowerCase()} successfully`,
-        data: withdrawal,
-      });
-    } catch (error: any) {
-      logger.error("Error updating withdrawal status", {
-        error: error.message,
-        stack: error.stack,
-        withdrawalId,
-      });
-      return responseService.error({
-        message: "Failed to update withdrawal status",
-        error: error.message,
+  //     return responseService.success({
+  //       message: `Withdrawal ${status.toLowerCase()} successfully`,
+  //       data: withdrawal,
+  //     });
+  //   } catch (error: any) {
+  //     logger.error("Error updating withdrawal status", {
+  //       error: error.message,
+  //       stack: error.stack,
+  //       withdrawalId,
+  //     });
+  //     return responseService.error({
+  //       message: "Failed to update withdrawal status",
+  //       error: error.message,
+  //     });
+  //   }
+  // }
+
+  // Get single withdrawal request details
+  static async getWithdrawalRequestDetails(withdrawalId: string) {
+    const withdrawal = await prisma.withdrawal.findUnique({
+      where: { id: withdrawalId },
+      include: {
+        doctor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profilePicture: true,
+            phoneNumber: true,
+            BankAccount: true,
+          },
+        },
+      },
+    });
+
+    if (!withdrawal) {
+      return responseService.notFoundError({
+        message: "Withdrawal request not found",
       });
     }
+
+    return responseService.success({
+      message: "Withdrawal request details fetched successfully",
+      data: {
+        id: withdrawal.id,
+        type: "withdrawal_request",
+        amount: withdrawal.amount,
+        status: withdrawal.status,
+        createdAt: withdrawal.createdAt,
+        updatedAt: withdrawal.updatedAt,
+        reference: withdrawal.reference,
+        doctor: withdrawal.doctor,
+        description: `Withdrawal Request`,
+        statusHistory: withdrawal.statusHistory || [],
+        adminNotes: withdrawal.adminNotes || null,
+      },
+    });
   }
 
+  static async getPaymentDetails(paymentId: string) {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        doctor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profilePicture: true,
+            phoneNumber: true,
+          },
+        },
+        consultation: {
+          select: {
+            id: true,
+            patient: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                profilePicture: true,
+                phoneNumber: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!payment) {
+      return responseService.notFoundError({
+        message: "Payment not found",
+      });
+    }
+
+    return responseService.success({
+      message: "Payment details fetched successfully",
+      data: {
+        id: payment.id,
+        type: "payment",
+        amount: payment.amount,
+        status: payment.status,
+        createdAt: payment.createdAt,
+        reference: payment.transactionId,
+        doctor: payment.doctor,
+        description: `payments for consultation`,
+      },
+    });
+  }
+
+  // Bulk update withdrawal statuses
+  static async bulkUpdateWithdrawalStatus(
+    withdrawalIds: string[],
+    newStatus: "approved" | "rejected",
+    adminId?: string,
+    adminNotes?: string
+  ) {
+    const results = await Promise.allSettled(
+      withdrawalIds.map((id) =>
+        this.updateWithdrawalStatus(id, newStatus, adminId, adminNotes)
+      )
+    );
+
+    const successful = results.filter((r) => r.status === "fulfilled").length;
+    const failed = results.filter((r) => r.status === "rejected").length;
+
+    return responseService.success({
+      message: `Bulk update completed: ${successful} successful, ${failed} failed`,
+      data: {
+        successful,
+        failed,
+        results: results.map((result, index) => ({
+          withdrawalId: withdrawalIds[index],
+          status: result.status,
+          ...(result.status === "rejected" && { error: result.reason }),
+        })),
+      },
+    });
+  }
+
+  // Update withdrawal request status
+  static async updateWithdrawalStatus(
+    withdrawalId: string,
+    newStatus: string,
+    adminId?: string,
+    adminNotes?: string
+  ) {
+    const withdrawal = await prisma.withdrawal.findUnique({
+      where: { id: withdrawalId },
+      include: {
+        doctor: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    if (!withdrawal) {
+      return responseService.notFoundError({
+        message: "Withdrawal request not found",
+      });
+    }
+
+    // Create status history entry
+    const currentStatusHistory = Array.isArray(withdrawal.statusHistory)
+      ? (withdrawal.statusHistory as unknown as WithdrawalStatusHistoryEntry[])
+      : [];
+
+    const newStatusEntry: WithdrawalStatusHistoryEntry = {
+      status:
+        newStatus === "completed"
+          ? WithdrawalStatus.COMPLETED
+          : WithdrawalStatus.REJECTED,
+      changedBy: adminId || "system",
+      changedAt: new Date().toISOString(),
+      notes: adminNotes || "",
+      previousStatus: withdrawal.status,
+    };
+
+    const updatedStatusHistory = [...currentStatusHistory, newStatusEntry];
+
+    // Prepare update data
+    const updateData: any = {
+      status: newStatus,
+      statusHistory: updatedStatusHistory,
+      updatedAt: new Date(),
+    };
+
+    // Add optional fields
+    if (adminNotes) {
+      updateData.adminNotes = adminNotes;
+    }
+
+    // Add conditional fields
+    if (newStatus === WithdrawalStatus.COMPLETED.toLocaleLowerCase()) {
+      updateData.completedAt = new Date();
+    }
+    if (newStatus === WithdrawalStatus.REJECTED.toLocaleLowerCase()) {
+      updateData.rejectedAt = new Date();
+    }
+
+    // Update withdrawal
+    const updatedWithdrawal = await prisma.withdrawal.update({
+      where: { id: withdrawalId },
+      data: updateData,
+      include: {
+        doctor: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            profilePicture: true,
+          },
+        },
+      },
+    });
+
+    // TODO: Send notification to doctor about status change
+    // You can implement email/push notification here
+
+    return responseService.success({
+      message: `Withdrawal request ${newStatus} successfully`,
+      data: {
+        id: updatedWithdrawal.id,
+        status: updatedWithdrawal.status,
+        amount: updatedWithdrawal.amount,
+        doctor: updatedWithdrawal.doctor,
+        statusHistory: updatedWithdrawal.statusHistory,
+        updatedAt: updatedWithdrawal.updatedAt,
+      },
+    });
+  }
   // System Configuration
   static async updateCommissionRate(rate: number) {
     try {

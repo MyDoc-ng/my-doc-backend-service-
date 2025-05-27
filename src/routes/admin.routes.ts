@@ -10,12 +10,7 @@ import {
   disputeResolutionSchema,
   withdrawalStatusSchema,
   commissionRateSchema,
-  consultationFilterSchema,
-  disputeFilterSchema,
-  paymentFilterSchema,
-  withdrawalFilterSchema,
 } from "../schema/admin.schema";
-import { cancelSchema } from "../schema/appointment.schema";
 
 const router: Router = express.Router();
 
@@ -78,12 +73,13 @@ router.get(
 );
 router.get("/transactions", authenticate, AdminController.getAllTransactions);
 router.get("/withdrawals", authenticate, AdminController.getWithdrawals);
-router.put(
-  "/withdrawals/:withdrawalId/status",
-  authenticate,
-  validateData(withdrawalStatusSchema),
-  AdminController.updateWithdrawalStatus
-);
+
+
+// Withdrawal management endpoints
+router.get('/withdrawals/:withdrawalId', authenticate, AdminController.getWithdrawalDetails);
+router.get('/payments/:paymentId', authenticate, AdminController.getPaymentDetails);
+router.put("/withdrawals/:withdrawalId/status", authenticate, validateData(withdrawalStatusSchema), AdminController.updateWithdrawalStatus);
+router.put('/withdrawals/bulk-update', authenticate, AdminController.bulkUpdateWithdrawals);
 
 // System configuration
 router.put(

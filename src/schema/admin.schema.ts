@@ -29,7 +29,7 @@ export const disputeResolutionSchema = z.object({
 
 // Withdrawal status update schema
 export const withdrawalStatusSchema = z.object({
-  status: z.enum(['PENDING', 'APPROVED', 'REJECTED'], {
+  status: z.enum(['pending', 'approved', 'rejected'], {
     required_error: 'Status is required',
     invalid_type_error: 'Status must be one of: PENDING, APPROVED, REJECTED',
   }),

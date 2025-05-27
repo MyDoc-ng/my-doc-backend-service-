@@ -2,7 +2,12 @@ import { NextFunction, Request, Response } from "express";
 import logger from "../logger";
 import { AuthService } from "../services/auth.service";
 import { AdminService } from "../services/admin.service";
-import { ApprovalStatus, PaymentStatus, WithdrawalStatus } from "@prisma/client";
+import {
+  ApprovalStatus,
+  PaymentStatus,
+  WithdrawalStatus,
+} from "@prisma/client";
+import { responseService } from "../services/response.service";
 
 export class AdminController {
   // Dashboard
@@ -224,15 +229,14 @@ export class AdminController {
     next: NextFunction
   ) {
     try {
-      const { doctorId, status, startDate, endDate } =
-        req.query;
+      const { doctorId, status, startDate, endDate } = req.query;
 
       const result = await AdminService.getAllTransactions({
         doctorId: doctorId as string,
         status: status as PaymentStatus | WithdrawalStatus,
         startDate: startDate as string,
         endDate: endDate as string,
-        category: 'all',
+        category: "all",
       });
 
       res.status(result.status || 200).json(result);
@@ -367,7 +371,7 @@ export class AdminController {
 
       const result = await AdminService.createWithdrawalRequest(
         doctorId,
-        amount,
+        amount
       );
 
       res.status(result.status || 200).json(result);
@@ -415,6 +419,86 @@ export class AdminController {
         error: error.message,
         stack: error.stack,
       });
+      next(error);
+    }
+  }
+
+  // Get withdrawal request details
+  static async getWithdrawalDetails(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { withdrawalId } = req.params;
+
+      const result = await AdminService.getWithdrawalRequestDetails(
+        withdrawalId
+      );
+
+      res.status(result.status || 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getPaymentDetails(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const { paymentId } = req.params;
+
+      const result = await AdminService.getPaymentDetails(
+        paymentId
+      );
+
+      res.status(result.status || 200).json(result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Bulk update withdrawal statuses
+  static async bulkUpdateWithdrawals(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<any> {
+    try {
+      const { withdrawalIds, status, adminId, adminNotes } = req.body;
+
+      if (
+        !withdrawalIds ||
+        !Array.isArray(withdrawalIds) ||
+        withdrawalIds.length === 0
+      ) {
+        return res.status(400).json(
+          responseService.error({
+            message: "withdrawalIds array is required",
+          })
+        );
+      }
+
+      if (!["approved", "rejected"].includes(status)) {
+        return res.status(400).json(
+          responseService.error({
+            message:
+              "Status must be either 'approved' or 'rejected' for bulk updates",
+          })
+        );
+      }
+
+      const result = await AdminService.bulkUpdateWithdrawalStatus(
+        withdrawalIds,
+        status,
+        adminId,
+        adminNotes
+      );
+
+      res.status(200).json(result);
+    } catch (error) {
       next(error);
     }
   }

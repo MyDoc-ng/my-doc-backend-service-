@@ -64,6 +64,8 @@ enum WithdrawalStatus {
   PENDING
   APPROVED
   REJECTED
+  COMPLETED
+  FAILED
 }
 
 enum ReferralStatus {
@@ -406,14 +408,20 @@ model Review {
 }
 
 model Withdrawal {
-  id        String           @id @default(uuid())
-  doctorId  String?
-  dDoctorId String?
-  amount    Float
-  reference String
-  status    WithdrawalStatus @default(PENDING)
-  createdAt DateTime         @default(now())
-  deletedAt DateTime?
+  id            String           @id @default(uuid())
+  doctorId      String?
+  dDoctorId     String?
+  amount        Float
+  reference     String @unique
+  status        WithdrawalStatus @default(PENDING)
+  adminNotes    String? // Admin notes for approval/rejection
+  statusHistory Json @default("[]") // Array of status change history
+
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+  rejectedAt  DateTime?
 
   doctor User? @relation(fields: [doctorId], references: [id], onDelete: SetNull)
 }
