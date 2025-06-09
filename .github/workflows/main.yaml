@@ -55,4 +55,4 @@ jobs:
             npx prisma db seed
             npx prisma generate         # ✅ Generate Prisma Client
             yarn run build         # Build project (if needed)
-            pm2 restart mydocng-api # Restart app using PM2
+            pm2 restart mydocngApi || pm2 start /var/www/api/mydocngApi/dist/src/app.js --name mydocngApi /var/www/api/mydocngApi
